@@ -7,8 +7,7 @@ typedef enum NodeType {
 	PipeNode_T,
 	ExecutableNode_T,
 	AndNode_T,
-	OrNode_T,
-	SemicolonNode_T
+	OrNode_T
 } NodeType;
 
 typedef struct Node Node;
@@ -39,8 +38,8 @@ struct Node {
 		OperandsNode operands;
 	} value;
 
-	int stdIn;
-	int stdOut;
+	int stdin;
+	int stdout;
 };
 
 Node * create_tree_from_string (const char *string);

@@ -45,7 +45,7 @@ void check_tree_equals (Node *expected, Node *actual) {
 void check_executable_equals (ExecutableNode *expected, ExecutableNode *actual) {
 	my_assert(expected != NULL && actual != NULL, "null executable");
 	my_assert(strcmp(expected->path, actual->path) == 0, "different path");
-	my_assert(expected->argc == actual->argc, "different argc");
+	my_assert(expected->argc == actual->argc, "different argc %d != %d", expected->argc, actual->argc);
 
 	for (int i = 0; i < expected->argc; i++) {
 		my_assert(strcmp(expected->argv[i], actual->argv[i]) == 0, "different arg");
@@ -126,7 +126,7 @@ void should_parse_ls_pipe_wc () {
 }
 
 void should_parse_ls_pipe_wc_pipe_wc () {
-	char *input = "ls -lah | wc | wc   ";
+	char *input = "ls -lah | wc | wc";
 	Node *parsed = create_tree_from_string(input);
 
 	char** lsArgs = malloc(2 * sizeof(char*));
@@ -240,9 +240,9 @@ void should_parse_or () {
 	check_tree_equals(&expected, parsed);
 }
 
-
-int main(int argc, char **argv) {
-    should_parse_ls_with_argument();
+void run_parser_test () {
+	printf("[PARSER TEST] Start tests\n");
+	should_parse_ls_with_argument();
    	should_parse_ls_with_two_arguments();
 
     should_parse_ls_pipe_wc();
@@ -250,8 +250,14 @@ int main(int argc, char **argv) {
 
     should_parse_and();
     should_parse_or();
+    printf("[PARSER TEST] All test passed\n");
+}
 
-    printf("ALL TEST PASSED\n");
+
+#ifndef MAIN_TESTS
+int main(int argc, char **argv) {
+	run_parser_test();
  
     return 0;
 }
+#endif
