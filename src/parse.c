@@ -1,40 +1,79 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <regex.h>
 #include "parse.h"
 
-
+// holds the informations of a string splitted by the operators regex
 typedef struct SplitResult {
 	int count;
 	const char **values;
 } SplitResult;
-SplitResult* split_string_for_operator (const char *string, const char *operator);
+SplitResult* split_string_for_operator (const char *string, regex_t *separator);
 
-
+// entry for the array that describes the priority of the operands.
 typedef struct PriorityMapEntry {
-	char *separator;
+
+	// regex to find the separator
+	char 		*separator_regex;
+
+	// compiled regex (at runtime)
+	regex_t* compiled_separator;
+
+	// function to construct a node from the splitted string
 	Node *(*handler) (SplitResult*);
 } PriorityMapEntry;
 
+
+// constructors of the nodes from the splitted strings
 Node * create_pipe_from_strings			(SplitResult *pieces);
 Node * create_and_from_strings			(SplitResult *pieces);
 Node * create_or_from_strings			(SplitResult *pieces);
 Node * create_executable_from_string	(const char *string);
 
-
 PriorityMapEntry priority_map[] = {
-	{ "&&", create_and_from_strings },
-	{ "||", create_or_from_strings },
-	// TODO: Parla di questo problema, mettendo la pipe sotto
-	{ "|", create_pipe_from_strings }
+	{
+		.separator_regex 	= "&&",
+		.handler 			= create_and_from_strings
+	}, {
+		.separator_regex	= "\\|\\|",
+		.handler 			= create_or_from_strings
+	}, { 
+		.separator_regex	= "[^|]\\|[^|]",
+		.handler 			= create_pipe_from_strings
+	}
 };
 const int operators_count = sizeof(priority_map) / sizeof(PriorityMapEntry);
+BOOL priority_map_initialized = FALSE;
+
+void compile_regex (PriorityMapEntry *entry) {
+	entry->compiled_separator = malloc(sizeof(regex_t));
+	int compile_res = regcomp(entry->compiled_separator, entry->separator_regex, REG_EXTENDED);
+	if (compile_res != 0) {
+		// TODO: Handle this error
+		fprintf(stderr, "regex compilation failed\n");
+		exit(-1);
+	}
+}
+
+void initialize_priority_map () {
+	int i;
+	for (i = 0; i < operators_count; i++) {
+		compile_regex(&priority_map[i]);
+	}
+	priority_map_initialized = TRUE;
+}
+
 
 Node * create_tree_from_string (const char *string) {
-	int i = 0;
+	if (!priority_map_initialized) {
+		initialize_priority_map();
+	}
+
+	int i;
 	for (i = 0; i < operators_count; i++) {
 		PriorityMapEntry *entry = &priority_map[i];
-		SplitResult *pieces = split_string_for_operator(string, entry->separator);
+		SplitResult *pieces = split_string_for_operator(string, entry->compiled_separator);
 
 		if (pieces != NULL) {
 			return entry->handler(pieces);
@@ -44,85 +83,60 @@ Node * create_tree_from_string (const char *string) {
 	return create_executable_from_string(string);
 }
 
-BOOL string_begins_with (const char *string, const char *sub_string) {
-	char *start = strstr(string, sub_string);
 
-	// Controllo tutta la stringa
-	int sub_string_length = strlen(sub_string);
-	if (strncmp(string, sub_string, sub_string_length) != 0) {
-		return FALSE;
-	}
+int count_occurrences_of_regex (const char *string, regex_t *separator) {
+	regmatch_t match;
+	int count = 0;
+	const char *str = string;
+	while (1) {
+		int res = regexec(separator, str, 1, &match, 0);
 
-	// Controllo .... che l'ultimo non sia lo stesso???
-	if (string[sub_string_length] != '\0' &&
-		string[sub_string_length] == sub_string[sub_string_length - 1]) {
-		return FALSE;
-	}
-
-	return (start - string == 0) ? TRUE : FALSE;
-}
-
-int count_occurrences_in_first_level_string (const char *string, const char *to_find) {
-	int i, count = 0, parentesis = 0;
-	int to_find_length = strlen(to_find);
-	int to_increment_after_found = to_find_length - 1;
-	for (i = 0; string[i] != '\0'; i++) {
-		char character = string[i];
-
-		if (character == '(') {
-			parentesis++;
-		} else if (character == ')') {
-			parentesis--;
-		} else if (parentesis == 0 && string_begins_with(&string[i], to_find)) {
+		if (res == REG_NOMATCH) {
+			break;
+		} else {
 			count++;
-			i += to_increment_after_found;
+			str += match.rm_eo;
 		}
-	}
+	};
+
 	return count;
 }
 
-SplitResult *split_string_for_operator (const char *string, const char *operator) {
-	int count = count_occurrences_in_first_level_string(string, operator);
-	if (count <= 0) {
+
+SplitResult *split_string_for_operator (const char *string, regex_t *separator) {
+	int operators_count = count_occurrences_of_regex(string, separator);
+	if (operators_count <= 0) {
 		return NULL;
 	}
 
-	count++;
+	int pieces = operators_count + 1;
+	SplitResult *split = malloc(sizeof(SplitResult));
+	split->count = pieces;
+	split->values = malloc(pieces * sizeof(char*));
 
-	char **pieces = malloc(count * sizeof(char*));
+	
+	int i;
+	const char *str = string;
+	regmatch_t match;
+	for (i = 0; i < pieces; i++) {
+		int res = regexec(separator, str, 1, &match, 0);
 
-	int operatorLength = strlen(operator);
+		const char *start = str;
+		int to_copy;
 
-	int i, j, parentesis, start;
-	j = start = parentesis = 0;
-	for (i = 0; string[i] != '\0'; i++) {
-		char character = string[i];
-		if (character == '(') {
-			parentesis++;
-		} else if (character == ')') {
-			parentesis--;
-		} else if (parentesis == 0 && string_begins_with(&string[i], operator)) {
-			int characters_to_copy = i - start;
-			pieces[j++] = strndup(&string[start], characters_to_copy);
-			i += operatorLength;
-			start = i;
+		if (res == REG_NOMATCH) {
+			to_copy = strlen(str);
+		} else {
+			to_copy = match.rm_so;
 		}
+
+		split->values[i] = strndup(start, to_copy);
+
+		str += match.rm_eo;
 	}
-	pieces[j++] = strdup(&string[start]);
 
-	SplitResult *res = malloc(sizeof(SplitResult));
-	res->count = count;
-	res->values = (const char**) pieces;
-	return res;
+	return split;
 }
-
-// Potrei fare che ci sia una funzione pe rogni operatore che accetti
-// la stringa contentente l'operatore (es: ls | wc), ma questo farebbe copiare
-// molte volte l'operazione di divisione dei due sottocomandi.
-// Però se è tutto in una funzione forse è più flessibile?
-// Perchè l'altra soluzione è quella di avere dei costruttori che vengono chiamati
-// in ciclo da un solo metodo. Il costruttore corretto e la priorità degli
-// operatori viene così decisa dalla priority map.
 
 
 Node * create_executable_from_string (const char *string) {
