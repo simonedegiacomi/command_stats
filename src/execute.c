@@ -6,6 +6,63 @@ typedef enum StreamDirection {
 	READ
 } StreamDirection;
 
+int * execute_executable(Node *node);
+void execute_pipe(Node *node);
+int * execute_operands(Node *node);
+
+
+
+
+void execute_pipe(Node *node) {
+	//crea gestore pipe
+	if (fork() > 0) {
+		wait(NULL);
+	} else {
+		int operands_count = node->value.operands.operands;
+		pid_t *fork_pid = malloc(operands_count * sizeof(pid_t));
+		for (int i = 0; i < operands_count; i++) {
+			fork_pid[i] = fork();
+			if (fork_pid[i] == 0) {
+				execute(node);	
+			}
+		}
+
+		for (int i = 0; i < operands_count; i++) {
+			waitpid(fork_pid[i], NULL, 0);
+		}
+	}
+
+	//il gestore della pipe organizza gli input e gli output sui fd
+}
+
+
+int * execute_operands(Node *node) {
+	if (fork() > 0) {
+		wait(NULL);
+	} else {
+		int operands_count = node->value.operands.operands;
+		for (int i = 0; i < operands_count; i++) {
+			switch (node->type) {
+				case AndNode_T: 
+					for (int i = 0; i < operands_count; ++i) {
+						int *status = execute(node);
+						if (status) {
+							return status;
+						}
+					}
+					break;
+				case OrNode_T:
+					for (int i = 0; i < operands_count; ++i) {
+						int *status = execute(node);
+						if (! status) {
+							return status;
+						}
+					}
+					break;
+			}
+		}
+	}
+}
 
 int get_file_descriptor_from_stream(Stream *stream, int stream_direction) {
 	switch (stream->type) {
@@ -32,14 +89,16 @@ int get_file_descriptor_from_streams(Stream **streams, int stream_direction) {
 }
 
 
-void execute_executable(Node *node) {
+int * execute_executable(Node *node) {
+	int *status;
 	if (fork() > 0) {
-		wait(NULL);	
+		wait(status);	
 	} else {
 		int stdin, stdout; //here will go the fd for this process
 
-		stdin = get_file_descriptor_from_stream(node->stdin, O_RDONLY);
-		stdout = get_file_descriptor_from_stream(node->stdout, O_WRONLY);
+		stdin = get_file_descriptor_from_streams(node->stdin, O_RDONLY);
+		//TODO: change method here
+		stdout = get_file_descriptor_from_streams(node->stdout, O_WRONLY);
 
 		if (stdin != STDIN_FILENO) {
 			close(STDIN_FILENO);
@@ -52,15 +111,25 @@ void execute_executable(Node *node) {
 		execv(node->value.executable.path, node->value.executable.argv);
 
 	}
+	return status;
 }
 
-void execute(Node* node) {
+int * execute(Node* node) {
+	int *status = 0;
 	switch (node->type) {
 		case ExecutableNode_T:
-			execute_executable(node);
+			status = execute_executable(node);
+			break;
+		case PipeNode_T:
+			execute_pipe(node);
+			break;
+		case AndNode_T:
+		case OrNode_T:
+			execute_operands(node);
 			break;
 		default: 
-			exit(-1);
+			perror("impossible");
 	}
+	return status;
 }
 

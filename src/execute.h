@@ -4,7 +4,7 @@
 #include "common.h"
 #include "parse.h"
 
-void execute(Node *node); 
+int * execute(Node *node); 
 
 
 #endif

@@ -15,12 +15,13 @@ typedef struct Node Node;
 
 typedef struct ExecutableNode {
 	char 	*path;
-
+	
 	char 	**argv;
 	int 	argc;
 } ExecutableNode;
 
 typedef struct OperandsNode {
+	//TODO: rename everywhere with operands_count
 	int 	operands;
 	Node 	**nodes;
 } OperandsNode;
