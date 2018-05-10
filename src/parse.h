@@ -12,10 +12,6 @@ typedef enum NodeType {
 
 typedef struct Node Node;
 
-typedef struct PipeNode {
-	Node 	*from;
-	Node 	*to;
-} PipeNode;
 
 typedef struct ExecutableNode {
 	char 	*path;
@@ -56,11 +52,13 @@ typedef struct Stream {
 struct Node {
 	NodeType type;
 	union {
-		PipeNode 		pipe;
 		ExecutableNode 	executable;
-		OperandsNode 	operands;
+		OperandsNode 	operands; // ||, &&, ; or |
 	} value;
 
+	// Array of in and outs.
+	// TODO: To implement redirect for any file scriptor we need to change these
+	// two fields into a sort of map
 	Stream **stdin;
 	Stream **stdout;
 };
