@@ -46,29 +46,49 @@ PriorityMapEntry priority_map[] = {
 const int operators_count = sizeof(priority_map) / sizeof(PriorityMapEntry);
 BOOL priority_map_initialized = FALSE;
 
-void compile_regex (PriorityMapEntry *entry) {
-	entry->compiled_separator = malloc(sizeof(regex_t));
-	int compile_res = regcomp(entry->compiled_separator, entry->separator_regex, REG_EXTENDED);
+regex_t * compile_regex (const char *regex) {
+	regex_t *compiled = malloc(sizeof(regex_t));
+	int compile_res = regcomp(compiled, regex, REG_EXTENDED);
 	if (compile_res != 0) {
 		// TODO: Handle this error
 		fprintf(stderr, "regex compilation failed\n");
 		exit(-1);
 	}
+	return compiled;
 }
 
 void initialize_priority_map () {
 	int i;
 	for (i = 0; i < operators_count; i++) {
-		compile_regex(&priority_map[i]);
+		priority_map[i].compiled_separator = compile_regex(priority_map[i].separator_regex);
 	}
 	priority_map_initialized = TRUE;
 }
 
+const char * remove_parentesis_if_alone (const char *str) {
+	// TODO: Compile only the first time
+	regex_t *regex = compile_regex("^[ ]*\\((.*)\\)[ ]*$");
 
-Node * create_tree_from_string (const char *string) {
+	regmatch_t matches[2];
+	int res = regexec(regex, str, 2, matches, 0);
+	regmatch_t match = matches[1];
+
+	if (res != REG_NOMATCH) {
+		const char *start = str + match.rm_so;
+		int to_copy = match.rm_eo - match.rm_so;
+		return strndup(start, to_copy);
+	}
+
+	return strdup(str);
+}
+
+Node * create_tree_from_string (const char *command) {
 	if (!priority_map_initialized) {
 		initialize_priority_map();
 	}
+
+	const char* string = remove_parentesis_if_alone(command);
+
 
 	int i;
 	for (i = 0; i < operators_count; i++) {
@@ -102,10 +122,32 @@ int count_occurrences_of_regex (const char *string, regex_t *separator) {
 	return count;
 }
 
+const char * obfuscate_parentesis_in_string (const char *str) {
+	int len = strlen(str);
+	char *obs = malloc(len * sizeof(char));
+
+	int i;
+	int parentesis = 0;
+	for (i = 0; i < len; i++) {
+		if (str[i] == '(') {
+			parentesis++;
+		}
+		obs[i] = (parentesis > 0) ? '#' : str[i];
+		if (str[i] == ')') {
+			parentesis--;
+		}
+	}
+	obs[len] = '\0';
+
+	return obs;
+}
 
 SplitResult *split_string_for_operator (const char *string, regex_t *separator) {
-	int operators_count = count_occurrences_of_regex(string, separator);
+	const char *obfuscated_string = obfuscate_parentesis_in_string(string);
+
+	int operators_count = count_occurrences_of_regex(obfuscated_string, separator);
 	if (operators_count <= 0) {
+		free((void *) obfuscated_string);
 		return NULL;
 	}
 
@@ -116,25 +158,28 @@ SplitResult *split_string_for_operator (const char *string, regex_t *separator) 
 
 	
 	int i;
+	const char *obs_str = obfuscated_string;
 	const char *str = string;
 	regmatch_t match;
 	for (i = 0; i < pieces; i++) {
-		int res = regexec(separator, str, 1, &match, 0);
+		int res = regexec(separator, obs_str, 1, &match, 0);
 
 		const char *start = str;
 		int to_copy;
 
 		if (res == REG_NOMATCH) {
-			to_copy = strlen(str);
+			to_copy = strlen(obs_str);
 		} else {
 			to_copy = match.rm_so;
 		}
 
 		split->values[i] = strndup(start, to_copy);
 
+		obs_str += match.rm_eo;
 		str += match.rm_eo;
 	}
 
+	free((void *) obfuscated_string);
 	return split;
 }
 
@@ -216,9 +261,9 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
 	return node;
 }
 
-Node * create_and_from_strings (SplitResult *pieces) {
+Node * create_operands_from_string (SplitResult *pieces, NodeType type) {
 	Node *node = malloc(sizeof(Node));
-	node->type = AndNode_T;
+	node->type = type;
 	OperandsNode *andNode = &node->value.operands;
 	andNode->operands = pieces->count;
 	andNode->nodes = malloc(pieces->count * sizeof(Node*));
@@ -231,18 +276,11 @@ Node * create_and_from_strings (SplitResult *pieces) {
 	return node;
 }
 
+Node * create_and_from_strings (SplitResult *pieces) {
+	return create_operands_from_string(pieces, AndNode_T);
+}
+
 
 Node * create_or_from_strings (SplitResult *pieces) {
-	Node *node = malloc(sizeof(Node));
-	node->type = OrNode_T;
-	OperandsNode *orNode = &node->value.operands;
-	orNode->operands = pieces->count;
-	orNode->nodes = malloc(pieces->count * sizeof(Node*));
-
-	int i = 0;
-	for (i = 0; i < orNode->operands; i++) {
-		orNode->nodes[i] = create_tree_from_string(pieces->values[i]);
-	}
-	
-	return node;
+	return create_operands_from_string(pieces, OrNode_T);
 }

@@ -240,6 +240,120 @@ void should_parse_or () {
 	check_tree_equals(&expected, parsed);
 }
 
+void should_parse_parentesis () {
+	char *command = "(true && true) || true";
+	Node *parsed = create_tree_from_string(command);
+
+	char *trueNodeArgs[] = { "true" };
+	Node true_node = {
+		.type = ExecutableNode_T,
+		.value = {
+			.executable = {
+				.path = "true",
+				.argc = 1,
+				.argv = trueNodeArgs
+			}
+		}
+	};
+	Node *and_operands[] = { &true_node , &true_node };
+	Node and_node = {
+		.type = AndNode_T,
+		.value = {
+			.operands = {
+				.operands = 2,
+				.nodes = and_operands
+			}
+		}
+	};
+
+	Node *or_operands[] = { &and_node, &true_node };
+	Node or_node = {
+		.type = OrNode_T,
+		.value = {
+			.operands = {
+				.operands = 2,
+				.nodes = or_operands
+			}
+		}
+	};
+
+	check_tree_equals(&or_node, parsed);
+}
+
+void should_parse_redirect () {
+	char *command = "ls > file.txt";
+	Node *parsed = create_tree_from_string(command);
+
+	char *lsNodeArgs[] = { "ls" };
+	Stream file_out = {
+		.type = FileStream_T,
+		.options = {
+			.file = {
+				.name = "file.txt",
+				.append = FALSE
+			}
+		}
+	};
+	Stream *outs[] = { &file_out };
+	Node expected = {
+		.type = ExecutableNode_T,
+		.value = {
+			.executable = {
+				.path = "ls",
+				.argc = 1,
+				.argv = lsNodeArgs
+			}
+		},
+		.stdout = outs
+	};
+
+	check_tree_equals(&expected, parsed);
+}
+
+void should_parse_and_inside_parentesis_with_pipe () {
+	char *command = "(ls && ls) > file.txt";
+	Node *parsed = create_tree_from_string(command);
+
+	char *lsNodeArgs[] = { "ls" };
+	Node ls = {
+		.type = ExecutableNode_T,
+		.value = {
+			.executable = {
+				.path = "ls",
+				.argc = 1,
+				.argv = lsNodeArgs
+			}
+		}
+	};
+	Node *nodes[] = { &ls, &ls };
+	Stream file_out = {
+		.type = FileStream_T,
+		.options = {
+			.file = {
+				.name = "file.txt",
+				.append = FALSE
+			}
+		}
+	};
+	Stream *outs[] = { &file_out };
+	Node expected = {
+		.type = AndNode_T,
+		.value = {
+			.operands = {
+				.operands = 2,
+				.nodes = nodes
+			}
+		},
+		.stdout = outs
+	};
+
+	check_tree_equals(&expected, parsed);
+}
+
+void should_parse_escaped_parameters () {
+	char *command = "echo \"a b\"\"c\" \"d\""; // echo "a b""c" "d"
+}
+
 void run_parser_test () {
 	printf("[PARSER TEST] Start tests\n");
 	should_parse_ls_with_argument();
@@ -250,6 +364,16 @@ void run_parser_test () {
 
     should_parse_and();
     should_parse_or();
+
+    should_parse_parentesis();
+    // NOTE: The following tests are commented only because redirect is not supported yet
+    //should_parse_redirect();
+    //should_parse_and_inside_parentesis_with_pipe();
+    //should_parse_escaped_parameters();
+
+    // TODO: ls > a > b
+    // TODO: ls > a > b < s c
+
     printf("[PARSER TEST] All test passed\n");
 }
 
