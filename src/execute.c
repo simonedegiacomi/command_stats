@@ -1,5 +1,5 @@
 #include "execute.h"
-#include "common.h"
+
 
 typedef enum StreamDirection {
 	WRITE,
@@ -7,25 +7,28 @@ typedef enum StreamDirection {
 } StreamDirection;
 
 
-int get_file_descriptor_from_stream(Stream **streams, int stream_direction) {
-	Stream *stream = streams[0];
+int get_file_descriptor_from_stream(Stream *stream, int stream_direction) {
 	switch (stream->type) {
 		case FileDescriptorStream_T:
 			return stream->file_descriptor;
 			break;
 		case FileStream_T:
-			stream->file_descriptor = open(stream->option.file.name, direction);
+			stream->file_descriptor = open(stream->options.file.name, stream_direction);
 			return stream->file_descriptor;
 			break;
 		case PipeStream_T:
-			if (direction == O_RDONLY) {
-				close(direction[PIPE_WRITE]);
+			if (stream_direction == O_RDONLY) {
+				close(stream->options.pipe.descriptors[PIPE_WRITE]);
 			} else {
-				close(direction[PIPE_READ]);
+				close(stream->options.pipe.descriptors[PIPE_READ]);
 			}
 			return stream->file_descriptor;
 			break;
 	}
+}
+
+int get_file_descriptor_from_streams(Stream **streams, int stream_direction) {
+	return get_file_descriptor_from_stream(streams[0],stream_direction);
 }
 
 
