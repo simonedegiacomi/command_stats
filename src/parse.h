@@ -31,7 +31,8 @@ typedef struct OperandsNode {
 
 typedef enum StreamType {
 	FileDescriptorStream_T,
-	FileStream_T
+	FileStream_T,
+	PipeStream_T
 } StreamType;
 
 typedef struct FileStream {
@@ -39,11 +40,16 @@ typedef struct FileStream {
 	BOOL append;
 } FileStream;
 
+typedef struct PipeStream {
+	int descriptors[2];
+} PipeStream;
+
 typedef struct Stream {
 	StreamType type;
 	int file_descriptor;
 	union {
 		FileStream 	file;
+		PipeStream  pipe;
 	} options;
 } Stream;
 

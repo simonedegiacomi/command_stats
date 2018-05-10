@@ -27,8 +27,11 @@ void should_wire_a_single_node_tree_to_std () {
 
 	Stream *out = root.stdin[0];
 	my_assert(out->type == FileDescriptorStream_T, "wrong stream type");
-	my_assert(out->file_descriptor == STDIN_FILENO, "wrong stream type");
-	//my_assert(root.stdout == STDOUT_FILENO, "not bound to stdout");
+	my_assert(out->file_descriptor == STDOUT_FILENO, "not stdout file descriptor");
+
+	Stream *in = root.stdin[1];
+	my_assert(in->type == FileDescriptorStream_T, "wrong stream type");
+	my_assert(in->file_descriptor == STDIN_FILENO, "not stdout file descriptor");
 }
 
 /*
