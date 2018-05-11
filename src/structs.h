@@ -18,7 +18,6 @@ typedef struct ExecutableNode {
     int 	argc;
 } ExecutableNode;
 
-// TODO: Used for ||, &&, ; but also |, can we find a better name?
 typedef struct OperandsNode {
     //TODO: rename everywhere with operands_count
     int 	count;
@@ -32,7 +31,7 @@ typedef enum StreamType {
 } StreamType;
 
 typedef struct FileStream {
-    char *name;
+    const char *name;
     int open_flag;
 } FileStream;
 
@@ -49,6 +48,12 @@ typedef struct Stream {
     } options;
 } Stream;
 
+
+typedef struct ExecutionResult {
+    int         exit_code;
+    long long   time;
+} ExecutionResult;
+
 struct Node {
     NodeType type;
     union {
@@ -62,6 +67,8 @@ struct Node {
     int stdins_count;
     Stream **stdins;
     Stream *stdout;
+
+    ExecutionResult *result;
 };
 
 

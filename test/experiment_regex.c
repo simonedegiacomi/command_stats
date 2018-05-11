@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <regex.h>
+#include <memory.h>
 #include "my_assert.h"
+#include "../src/common.h"
 
 void should_count_or_occurrences () {
 	char *command 	= "true || false || true";
@@ -70,6 +72,7 @@ void should_count_occurrences_of_similar_separators () {
 	}
 
 }
+
 
 void run_experiment_regex_tests () {
 	printf("[REGEX EXPERIMENT] Start tests\n");

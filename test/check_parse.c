@@ -259,8 +259,44 @@ void should_parse_and_inside_brackets_with_pipe() {
 	check_tree_equals(&expected, parsed);
 }
 
-void should_parse_escaped_parameters () {
-	//char *command = "echo \"a b\"\"c\" \"d\""; // echo "a b""c" "d"
+void should_parse_near_quotation_marks_as_single_parameter() {
+	char *command = "echo \"a b\"\"c\" \"d\" e"; // echo "a b""c" "d" e
+    Node *parsed = create_tree_from_string(command);
+
+    char *args[] = { "echo", "a bc", "d", "e" };
+
+    Node expected = {
+            .type = ExecutableNode_T,
+            .value = {
+                    .executable = {
+                            .path = "echo",
+                            .argc = 4,
+                            .argv = args
+                    }
+            }
+    };
+
+    check_tree_equals(&expected, parsed);
+}
+
+void should_parse_escaped_quotation_marks () {
+    char *command = "./run \"echo \\\"prova\\\" > file\""; // ./run "echo \"prova\" > file"
+    Node *parsed = create_tree_from_string(command);
+
+    char *args[] = { "./run", "echo \"prova\" > file" };
+
+    Node expected = {
+            .type = ExecutableNode_T,
+            .value = {
+                    .executable = {
+                            .path = "./run",
+                            .argc = 2,
+                            .argv = args
+                    }
+            }
+    };
+
+    check_tree_equals(&expected, parsed);
 }
 
 void run_parser_test () {
@@ -274,8 +310,10 @@ void run_parser_test () {
 
     should_parse_parentesis();
     should_parse_redirect();
-    should_parse_and_inside_brackets_with_pipe(); // ma va davvero???
-    //should_parse_escaped_parameters();
+    should_parse_and_inside_brackets_with_pipe(); // ma va davvero???*/
+    
+    //should_parse_near_quotation_marks_as_single_parameter();
+    //should_parse_escaped_quotation_marks();
 
     printf("[PARSER TEST] All test passed\n");
 }

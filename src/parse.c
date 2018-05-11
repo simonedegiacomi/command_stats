@@ -97,15 +97,18 @@ void initialize_regexes() {
 }
 
 regex_t * compile_regex (const char *regex) {
-    regex_t *compiled = malloc(sizeof(regex_t));
-    int compile_res = regcomp(compiled, regex, REG_EXTENDED);
-    if (compile_res != 0) {
-        fprintf(stderr, "[PARSER] Regex compilation failed\n");
-        exit(-1);
-    }
-    return compiled;
-}
+	regex_t *compiled = malloc(sizeof(regex_t));
+	int compile_res = regcomp(compiled, regex, REG_EXTENDED);
+	if (compile_res != 0) {
+		char error_str[1000];
+		regerror(compile_res, compiled, error_str, sizeof(error_str));
+		fprintf(stderr, "[PARSER] Regex compilation failed: %s\n", error_str);
 
+
+		exit(-1);
+	}
+	return compiled;
+}
 
 
 
@@ -162,6 +165,13 @@ const char * remove_brackets_if_alone(const char *str) {
 	return strdup(str);
 }
 
+const char *create_string_from_match(const char *str, regmatch_t *match) {
+    const char *start   = str + match->rm_so;
+    const char *end     = str + match->rm_eo;
+    size_t to_copy      = end - start;
+    return strndup(start, to_copy);
+}
+
 
 RedirectSplit * create_redirect_with_command_from_string (const char *str) {
     RedirectSplit *split = new_redirect_split();
@@ -188,54 +198,36 @@ RedirectSplit * create_redirect_with_command_from_string (const char *str) {
     return split;
 }
 
-void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const char *str) {
+void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const char *string) {
     // TODO: Compile only the first time
     char *const MATCH_REDIRECT_AND_FILE_NAME_IF_LAST = "((>>|>|<) *([a-zA-Z\\.]*))+$";
     regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
 
     regmatch_t matches[4];
-    while (regexec(regex, str, 4, matches, 0) != REG_NOMATCH) {
-        // TODO: Refactor
-        const char *start = str + matches[2].rm_so;
-        const char *end = str + matches[2].rm_eo;
-        size_t to_copy = end - start;
+    for (const char *str = string; regexec(regex, str, 4, matches, 0) != REG_NOMATCH; str += matches[3].rm_eo) {
+        const char *redirect_type   = create_string_from_match(str, &matches[2]);
+        const char *file_name       = create_string_from_match(str, &matches[3]);
 
-        const char *redirect_type = strndup(start, to_copy);
-
-
-        start = str + matches[3].rm_so;
-        end = str + matches[3].rm_eo;
-        to_copy = end - start;
-
-        char *file_name = strndup(start, to_copy);
-        str = end;
-
-
-        if (strcmp(redirect_type, ">>") == 0) {
+        Stream *stream;
+        if (redirect_type[0] == '>') {
             if (split->out == NULL) {
                 split->out = malloc(sizeof(Stream));
             }
-            split->out->type = FileStream_T;
-            split->out->options.file.name = file_name;
-            split->out->options.file.open_flag = O_APPEND;
-        } else if (strcmp(redirect_type, ">") == 0) {
-            if (split->out == NULL) {
-                split->out = malloc(sizeof(Stream));
+            stream = split->out;
+            stream->options.file.open_flag = O_WRONLY;
+
+            if (strlen(redirect_type) == 2) { // >>
+                stream->options.file.open_flag |= O_WRONLY;
             }
-            split->out->type = FileStream_T;
-            split->out->options.file.name = file_name;
-            split->out->options.file.open_flag = O_WRONLY;
-        } else if (strcmp(redirect_type, "<") == 0) {
+        } else {
             if (split->in == NULL) {
                 split->in = malloc(sizeof(Stream));
             }
-            split->in->type = FileStream_T;
-            split->in->options.file.name = file_name;
-            split->in->options.file.open_flag = O_RDONLY;
-        } else {
-            fprintf(stderr, "wrong\n");
-            exit(-1);
+            stream = split->in;
+            stream->options.file.open_flag = O_RDONLY;
         }
+        stream->type                 = FileStream_T;
+        stream->options.file.name    = file_name;
     }
 }
 
@@ -358,41 +350,74 @@ Node * create_executable_from_string (SplitResult *pieces) {
 	// Parse path
 	char *path = strsep(&string_copy, " ");
 	executable->path = strdup(path);
+	free(copyToFree);
 
-	// Count arguments
+	// WARNING: unreadable code below!
+	// TODO: Use regex
+
 	int i;
-	int arguments = 0;
-	BOOL lastSpace = FALSE;
+	int count = 0;
 	for (i = 0; string[i] != '\0'; i++) {
-		if (string[i] == ' ') {
-			lastSpace = TRUE;
-			arguments++;
-			// Skip space
-			while (string[i] == ' ') {
+		// Skip space
+		while (string[i] == ' ') {
+			i++;
+		}
+
+		if (string[i] == '\"') {
+			i++;
+			while (string[i] != '\0' && (string[i] != '\"' || string[i - 1] == '\\')) {
 				i++;
 			}
-		} else {
-			lastSpace = FALSE;
+			if (string[i] != '\0' && string[i + 1] != '\"') {
+				count++;
+			}
+		} else if (string[i] != '\0') {
+			i++;
+			while (string[i] != '\0' && (string[i] != ' ' || string [i - 1] == '\\')) {
+				i++;
+			}
+			count++;
+			i--;
 		}
 	}
-	if (lastSpace == FALSE) {
-		arguments++;
-	}
-	executable->argc = arguments;
+	executable->argc = count;
+
 
 	// Parse arguments
-	executable->argv = malloc(arguments * sizeof(char*));
-	executable->argv[0] = strdup(executable->path);
-	if (arguments == 1) {
-		return node;
+	executable->argv = malloc(count * sizeof(char*));
+	count = 0;
+
+	for (i = 0; string[i] != '\0'; i++) {
+		// Skip space
+		while (string[i] == ' ') {
+			i++;
+		}
+
+		int start = i;
+		if (string[i] == '\"') {
+			i++;
+			start = i;
+			while (string[i] != '\0' && (string[i] != '\"' || string[i - 1] == '\\')) {
+				i++;
+			}
+			if (string[i] != '\0' && string[i + 1] != '\"') {
+				int end = i;
+				int to_copy = end - start;
+				executable->argv[count++] = strndup(&string[start], to_copy);
+
+			}
+		} else if (string[i] != '\0') {
+			i++;
+			while (string[i] != '\0' && (string[i] != ' ' || string [i - 1] == '\\')) {
+				i++;
+			}
+			int end = i;
+			int to_copy = end - start;
+			executable->argv[count++] = strndup(&string[start], to_copy);
+			i--;
+		}
 	}
 
-	for (i = 1; i < arguments; i++) {
-		char *arg = strsep(&string_copy, " ");
-		executable->argv[i] = strdup(arg);
-	}
-
-	free(copyToFree);
 	return node;
 }
 
