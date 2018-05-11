@@ -1,11 +1,6 @@
 #include "execute.h"
 
 
-typedef enum StreamDirection {
-	WRITE,
-	READ
-} StreamDirection;
-
 int * execute_executable(Node *node);
 void execute_pipe(Node *node);
 int * execute_operands(Node *node);
@@ -75,9 +70,9 @@ int get_file_descriptor_from_stream(Stream *stream, int stream_direction) {
 			break;
 		case PipeStream_T:
 			if (stream_direction == O_RDONLY) {
-				close(stream->options.pipe.descriptors[PIPE_WRITE]);
+				close(stream->options.pipe.descriptors[WRITE_INTO_PIPE]);
 			} else {
-				close(stream->options.pipe.descriptors[PIPE_READ]);
+				close(stream->options.pipe.descriptors[READ_FROM_PIPE]);
 			}
 			return stream->file_descriptor;
 			break;

@@ -20,6 +20,9 @@ void should_parse_ls_with_argument () {
 	executable->argv = malloc(2 * sizeof(char*));
 	executable->argv[0] = "ls";
 	executable->argv[1] = "-lah";
+    // TODO: Check if we need to initialize the std streams also with the inline declaration
+    expected.stdout = NULL;
+    expected.stdins = NULL;
 
 	check_tree_equals(&expected, parsed);
 }
@@ -37,6 +40,8 @@ void should_parse_ls_with_two_arguments () {
 	executable->argv[0] = "ls";
 	executable->argv[1] = "-l";
 	executable->argv[2] = "-a";
+    expected.stdout = NULL;
+    expected.stdins = NULL;
 
 	check_tree_equals(&expected, parsed);
 }
@@ -190,7 +195,6 @@ void should_parse_redirect () {
 	char *command = "ls > file.txt";
 	Node *parsed = create_tree_from_string(command);
 
-	char *lsNodeArgs[] = { "ls" };
 	Stream file_out = {
 		.type = FileStream_T,
 		.options = {
@@ -200,7 +204,8 @@ void should_parse_redirect () {
 			}
 		}
 	};
-	Node expected = {
+    char *lsNodeArgs[] = { "ls" };
+    Node expected = {
 		.type = ExecutableNode_T,
 		.value = {
 			.executable = {
@@ -215,7 +220,7 @@ void should_parse_redirect () {
 	check_tree_equals(&expected, parsed);
 }
 
-void should_parse_and_inside_parentesis_with_pipe () {
+void should_parse_and_inside_brackets_with_pipe() {
 	char *command = "(ls && ls) > file.txt";
 	Node *parsed = create_tree_from_string(command);
 
@@ -255,7 +260,7 @@ void should_parse_and_inside_parentesis_with_pipe () {
 }
 
 void should_parse_escaped_parameters () {
-	char *command = "echo \"a b\"\"c\" \"d\""; // echo "a b""c" "d"
+	//char *command = "echo \"a b\"\"c\" \"d\""; // echo "a b""c" "d"
 }
 
 void run_parser_test () {
@@ -268,11 +273,10 @@ void run_parser_test () {
     should_parse_or();
 
     should_parse_parentesis();
-    // NOTE: The following tests are commented only because redirect is not supported yet
-    //should_parse_redirect();
-    //should_parse_and_inside_parentesis_with_pipe();
+    should_parse_redirect();
+    should_parse_and_inside_brackets_with_pipe(); // ma va davvero???
     //should_parse_escaped_parameters();
-	
+
     printf("[PARSER TEST] All test passed\n");
 }
 

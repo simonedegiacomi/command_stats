@@ -4,16 +4,10 @@
 #include <unistd.h>
 #include "wire.h"
 
-// TODO: Remove and use constants from common.h
-#define WRITE_INTO_PIPE 1
-#define READ_FROM_PIPE  0
-
 
 void            wire_pipe_nodes         (OperandsNode *operands, Stream **ins, Stream *out);
 Stream *        create_std_stream       (int direction);
 PipeStream *    create_pipe             ();
-Stream *        wrap_pipe_into_stream   (PipeStream *pipe_stream, int direction);
-Stream **       wrap_stream_into_array  (Stream *stream);
 void            wire_r                  (Node *tree, Stream **ins, Stream *out);
 
 void wire (Node *tree) {
@@ -22,18 +16,22 @@ void wire (Node *tree) {
 	wire_r(tree, wrap_stream_into_array(std_in), stdout);
 }
 
-
 void wire_r (Node *tree, Stream **ins, Stream *out) {
 	tree->stdins = ins;
 	tree->stdout = out;
 
 
 	switch (tree->type) {
+		case ExecutableNode_T:
+			// nothing to do
+			break;
 		case PipeNode_T:
 			wire_pipe_nodes(&tree->value.operands, ins, out);
 			break;
         default:
-            exit(-1);
+			fprintf(stderr, "[WIRE] unexpected node type\n");
+            //exit(-1);
+			break;
 	}
 }
 
@@ -66,21 +64,4 @@ void wire_pipe_nodes (OperandsNode *operands, Stream **ins, Stream *out) {
 	}
 
 	operands->nodes[operands->operands]->stdout = out;
-}
-
-Stream * wrap_pipe_into_stream (PipeStream *pipe_stream, int direction) {
-	Stream *stream = malloc(sizeof(Stream));
-
-	stream->type 			                = PipeStream_T;
-	stream->file_descriptor                 = pipe_stream->descriptors[direction];
-    stream->options.pipe.descriptors[0] 	= pipe_stream->descriptors[0];
-    stream->options.pipe.descriptors[1] 	= pipe_stream->descriptors[1];
-
-	return stream;
-}
-
-Stream ** wrap_stream_into_array (Stream *stream) {
-	Stream **streams = malloc(sizeof(stream));
-	streams[0] = stream;
-	return streams;
 }
