@@ -25,57 +25,18 @@ void should_wire_a_single_node_tree_to_std () {
 
 	wire(&root);
 
-	Stream *out = root.stdin[0];
+	Stream *out = root.stdins[0];
 	my_assert(out->type == FileDescriptorStream_T, "wrong stream type");
 	my_assert(out->file_descriptor == STDOUT_FILENO, "not stdout file descriptor");
 
-	Stream *in = root.stdin[1];
+	Stream *in = root.stdout;
 	my_assert(in->type == FileDescriptorStream_T, "wrong stream type");
 	my_assert(in->file_descriptor == STDIN_FILENO, "not stdout file descriptor");
 }
 
-/*
-void should_wire_a_pipe () {
-	Node from = {
-		.type = ExecutableNode_T,
-		.value = {
-			.executable = {
-				.path = "ls"
-			}
-		}
-	};
-	Node to = {
-		.type = ExecutableNode_T,
-		.value = {
-			.executable = {
-				.path = "wc"
-			}
-		}
-	};
-	Node pipe = {
-		.type = PipeNode_T,
-		.value = {
-			.pipe = {
-				.from = &from,
-				.to = &to
-			}
-		}
-	};
-
-	wire(&pipe);
-
-	my_assert(pipe.stdin == STDIN_FILENO, "not bound to stdin");
-	my_assert(from.stdin == STDIN_FILENO, "not bound to stdin (%d)", from.stdin);
-	my_assert(from.stdout == 4, "not bound to pipe");
-	my_assert(to.stdin == 3, "not bound to pipe");
-	my_assert(to.stdout == STDOUT_FILENO, "not bound to stdout");
-	my_assert(pipe.stdout == STDOUT_FILENO, "not bound to stdout");
-}
-*/
 void run_wire_tests () {
 	printf("[WIRE TEST] Start tests\n");
 	should_wire_a_single_node_tree_to_std();
-	//should_wire_a_pipe();
     printf("[WIRE TEST] All test passed\n");
 }
 

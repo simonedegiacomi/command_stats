@@ -4,6 +4,7 @@
 #include "../src/parse.h"
 #include "my_assert.h"
 #include "utils.h"
+#include <fcntl.h>
 
 
 
@@ -40,35 +41,6 @@ void should_parse_ls_with_two_arguments () {
 	check_tree_equals(&expected, parsed);
 }
 
-void should_parse_ls_pipe_wc () {
-	char *input = "ls -lah | wc";
-	Node *parsed = create_tree_from_string(input);
-
-	Node expected;
-	expected.type = PipeNode_T;
-	PipeNode *pipe = &expected.value.pipe;
-
-	Node *from = pipe->from = malloc(sizeof(Node));
-	from->type = ExecutableNode_T;
-	ExecutableNode *ls = &from->value.executable;
-	ls->path = "ls";
-	ls->argc = 2;
-	ls->argv = malloc(2 * sizeof(char*));
-	ls->argv[0] = "ls";
-	ls->argv[1] = "-lah";
-
-
-	Node *to = pipe->to = malloc(sizeof(Node));
-	to->type = ExecutableNode_T;
-	ExecutableNode *wc = &to->value.executable;
-	wc->path = "wc";
-	wc->argc = 1;
-	wc->argv = malloc(1 * sizeof(char*));
-	wc->argv[0] = "wc";
-
-	check_tree_equals(&expected, parsed);
-}
-
 void should_parse_ls_pipe_wc_pipe_wc () {
 	char *input = "ls -lah | wc | wc";
 	Node *parsed = create_tree_from_string(input);
@@ -100,26 +72,16 @@ void should_parse_ls_pipe_wc_pipe_wc () {
 		}
 	};
 
-	Node pipe2 = {
-		.type = PipeNode_T,
-		.value = {
-			.pipe = {
-				.from = &wc,
-				.to = &wc
-			}
-		}
-	};
-
+	Node *nodes[] = { &ls, &wc, &wc };
 	Node expected = {
 		.type = PipeNode_T,
 		.value = {
-			.pipe = {
-				.from = &ls,
-				.to = &pipe2
+			.operands = {
+				.operands = 3,
+				.nodes = nodes
 			}
 		}
-	};	
-
+	};
 
 	check_tree_equals(&expected, parsed);
 }
@@ -234,11 +196,10 @@ void should_parse_redirect () {
 		.options = {
 			.file = {
 				.name = "file.txt",
-				.append = FALSE
+				.open_flag = O_WRONLY
 			}
 		}
 	};
-	Stream *outs[] = { &file_out };
 	Node expected = {
 		.type = ExecutableNode_T,
 		.value = {
@@ -248,7 +209,7 @@ void should_parse_redirect () {
 				.argv = lsNodeArgs
 			}
 		},
-		.stdout = outs
+		.stdout = &file_out
 	};
 
 	check_tree_equals(&expected, parsed);
@@ -275,11 +236,10 @@ void should_parse_and_inside_parentesis_with_pipe () {
 		.options = {
 			.file = {
 				.name = "file.txt",
-				.append = FALSE
+				.open_flag = O_WRONLY
 			}
 		}
 	};
-	Stream *outs[] = { &file_out };
 	Node expected = {
 		.type = AndNode_T,
 		.value = {
@@ -288,7 +248,7 @@ void should_parse_and_inside_parentesis_with_pipe () {
 				.nodes = nodes
 			}
 		},
-		.stdout = outs
+		.stdout = &file_out
 	};
 
 	check_tree_equals(&expected, parsed);
@@ -302,8 +262,6 @@ void run_parser_test () {
 	printf("[PARSER TEST] Start tests\n");
 	should_parse_ls_with_argument();
    	should_parse_ls_with_two_arguments();
-
-    should_parse_ls_pipe_wc();
     should_parse_ls_pipe_wc_pipe_wc();
 
     should_parse_and();
@@ -314,10 +272,7 @@ void run_parser_test () {
     //should_parse_redirect();
     //should_parse_and_inside_parentesis_with_pipe();
     //should_parse_escaped_parameters();
-
-    // TODO: ls > a > b
-    // TODO: ls > a > b < s c
-
+	
     printf("[PARSER TEST] All test passed\n");
 }
 

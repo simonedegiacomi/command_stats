@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <regex.h>
+#include <unistd.h>
 #include "parse.h"
 
 // holds the informations of a string splitted by the operators regex
@@ -242,20 +243,13 @@ Node * create_executable_from_string (const char *string) {
 Node * create_pipe_from_strings (SplitResult *pieces) {
 	Node *node = malloc(sizeof(Node));
 	node->type = PipeNode_T;
-	PipeNode *pipe = &node->value.pipe;
+	OperandsNode *pipe = &node->value.operands;
+	pipe->operands = pieces->count;
+	pipe->nodes = malloc(pieces->count * sizeof(Node*));
 
-	pipe->from = create_tree_from_string(pieces->values[0]);
-	if (pieces->count == 2) {
-		pipe->to = create_tree_from_string(pieces->values[1]);
-	} else {
-		SplitResult subSplit;
-		subSplit.count = pieces->count - 1;
-		subSplit.values = malloc(subSplit.count * sizeof(char*));
-		int i;
-		for (i = 0; i < subSplit.count; i++) {
-			subSplit.values[i] = pieces->values[i + 1];
-		}
-		pipe->to = create_pipe_from_strings(&subSplit);
+	int i;
+	for (i = 0; i < pieces->count; i++) {
+		pipe->nodes[i] = create_tree_from_string(pieces->values[i]);
 	}
 
 	return node;

@@ -20,6 +20,7 @@ typedef struct ExecutableNode {
 	int 	argc;
 } ExecutableNode;
 
+// TODO: Used for ||, &&, ; but also |, can we find a better name?
 typedef struct OperandsNode {
 	int 	operands;
 	Node 	**nodes;
@@ -33,7 +34,7 @@ typedef enum StreamType {
 
 typedef struct FileStream {
 	char *name;
-	BOOL append;
+	int open_flag;
 } FileStream;
 
 typedef struct PipeStream {
@@ -59,8 +60,8 @@ struct Node {
 	// Array of in and outs.
 	// TODO: To implement redirect for any file scriptor we need to change these
 	// two fields into a sort of map
-	Stream **stdin;
-	Stream **stdout;
+	Stream **stdins;
+	Stream *stdout;
 };
 
 Node * create_tree_from_string (const char *string);

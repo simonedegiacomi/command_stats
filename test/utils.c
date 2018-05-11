@@ -18,17 +18,7 @@ void check_tree_equals (Node *expected, Node *actual) {
 				&actual->value.executable);
 			break;
 		}
-		case PipeNode_T: {
-			check_tree_equals(
-				expected->value.pipe.from,
-				actual->value.pipe.from
-			);
-			check_tree_equals(
-				expected->value.pipe.to,
-				actual->value.pipe.to
-			);
-			break;
-		}
+		case PipeNode_T:
 		case AndNode_T:
 		case OrNode_T: {
 			return check_operands_equals(
