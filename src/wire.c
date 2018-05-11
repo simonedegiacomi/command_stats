@@ -51,7 +51,7 @@ PipeStream * create_pipe () {
 void wire_pipe_nodes (OperandsNode *operands, Stream **ins, Stream *out) {
 	operands->nodes[0]->stdins = ins;
 
-	int pipe_count = operands->operands;
+	int pipe_count = operands->count;
 	int i;
 	for (i = 0; i < pipe_count; i++) {
 
@@ -63,5 +63,5 @@ void wire_pipe_nodes (OperandsNode *operands, Stream **ins, Stream *out) {
 		right->stdins   = wrap_stream_into_array(wrap_pipe_into_stream(left_to_right, READ_FROM_PIPE));
 	}
 
-	operands->nodes[operands->operands]->stdout = out;
+	operands->nodes[operands->count]->stdout = out;
 }

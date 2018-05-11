@@ -13,7 +13,7 @@ void execute_pipe(Node *node) {
 	if (fork() > 0) {
 		wait(NULL);
 	} else {
-		int operands_count = node->value.operands.operands;
+		int operands_count = node->value.operands.count;
 		pid_t *fork_pid = malloc(operands_count * sizeof(pid_t));
 		for (int i = 0; i < operands_count; i++) {
 			fork_pid[i] = fork();
@@ -35,7 +35,7 @@ int * execute_operands(Node *node) {
 	if (fork() > 0) {
 		wait(NULL);
 	} else {
-		int operands_count = node->value.operands.operands;
+		int operands_count = node->value.operands.count;
 		for (int i = 0; i < operands_count; i++) {
 			switch (node->type) {
 				case AndNode_T: 

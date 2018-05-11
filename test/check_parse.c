@@ -82,7 +82,7 @@ void should_parse_ls_pipe_wc_pipe_wc () {
 		.type = PipeNode_T,
 		.value = {
 			.operands = {
-				.operands = 3,
+				.count = 3,
 				.nodes = nodes
 			}
 		}
@@ -112,7 +112,7 @@ void should_parse_and () {
 		.type = AndNode_T,
 		.value = {
 			.operands = {
-				.operands = 2,
+				.count = 2,
 				.nodes = nodes
 			}
 		}
@@ -142,7 +142,7 @@ void should_parse_or () {
 		.type = OrNode_T,
 		.value = {
 			.operands = {
-				.operands = 2,
+				.count = 2,
 				.nodes = nodes
 			}
 		}
@@ -171,7 +171,7 @@ void should_parse_parentesis () {
 		.type = AndNode_T,
 		.value = {
 			.operands = {
-				.operands = 2,
+				.count = 2,
 				.nodes = and_operands
 			}
 		}
@@ -182,7 +182,7 @@ void should_parse_parentesis () {
 		.type = OrNode_T,
 		.value = {
 			.operands = {
-				.operands = 2,
+				.count = 2,
 				.nodes = or_operands
 			}
 		}
@@ -249,7 +249,7 @@ void should_parse_and_inside_brackets_with_pipe() {
 		.type = AndNode_T,
 		.value = {
 			.operands = {
-				.operands = 2,
+				.count = 2,
 				.nodes = nodes
 			}
 		},

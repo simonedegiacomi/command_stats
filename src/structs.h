@@ -21,7 +21,7 @@ typedef struct ExecutableNode {
 // TODO: Used for ||, &&, ; but also |, can we find a better name?
 typedef struct OperandsNode {
     //TODO: rename everywhere with operands_count
-    int 	operands;
+    int 	count;
     Node 	**nodes;
 } OperandsNode;
 

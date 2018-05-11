@@ -163,7 +163,7 @@ const char * remove_brackets_if_alone(const char *str) {
 }
 
 
-RedirectSplit * split_redirect_if_last_right(const char *str) {
+RedirectSplit * create_redirect_with_command_from_string (const char *str) {
     RedirectSplit *split = new_redirect_split();
 
     // TODO: Compile only the first time
@@ -180,57 +180,71 @@ RedirectSplit * split_redirect_if_last_right(const char *str) {
 
         split->has_redirects = TRUE;
         split->command = strndup(start, to_copy);
-
-        regmatch_t matches[4];
-        while (regexec(regex, str, 4, matches, 0) != REG_NOMATCH) {
-
-
-            start = str + matches[2].rm_so;
-            end = str + matches[2].rm_eo;
-            to_copy = end - start;
-
-            const char *redirect_type = strndup(start, to_copy);
-
-
-
-            start = str + matches[3].rm_so;
-            end = str + matches[3].rm_eo;
-            to_copy = end - start;
-
-            char *file_name = strndup(start, to_copy);
-            printf("Type: %s\tFile: %s\n", redirect_type, file_name);
-            str = end;
-
-
-            if (strcmp(redirect_type, ">>") == 0) {
-                if (split->out == NULL) {
-                    split->out = malloc(sizeof(Stream));
-                }
-                split->out->type = FileStream_T;
-                split->out->options.file.name = file_name;
-                split->out->options.file.open_flag = O_APPEND;
-            } else if (strcmp(redirect_type, ">") == 0) {
-                if (split->out == NULL) {
-                    split->out = malloc(sizeof(Stream));
-                }
-                split->out->type = FileStream_T;
-                split->out->options.file.name = file_name;
-                split->out->options.file.open_flag = O_WRONLY;
-            } else if (strcmp(redirect_type, "<") == 0) {
-                if (split->in == NULL) {
-                    split->in = malloc(sizeof(Stream));
-                }
-                split->in->type = FileStream_T;
-                split->in->options.file.name = file_name;
-                split->in->options.file.open_flag = O_RDONLY;
-            } else {
-                fprintf(stderr, "wrong\n");
-                exit(-1);
-            }
-        }
     } else {
         split->has_redirects = FALSE;
         split->command = strdup(str);
+    }
+
+    return split;
+}
+
+void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const char *str) {
+    // TODO: Compile only the first time
+    char *const MATCH_REDIRECT_AND_FILE_NAME_IF_LAST = "((>>|>|<) *([a-zA-Z\\.]*))+$";
+    regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
+
+    regmatch_t matches[4];
+    while (regexec(regex, str, 4, matches, 0) != REG_NOMATCH) {
+        // TODO: Refactor
+        const char *start = str + matches[2].rm_so;
+        const char *end = str + matches[2].rm_eo;
+        size_t to_copy = end - start;
+
+        const char *redirect_type = strndup(start, to_copy);
+
+
+        start = str + matches[3].rm_so;
+        end = str + matches[3].rm_eo;
+        to_copy = end - start;
+
+        char *file_name = strndup(start, to_copy);
+        str = end;
+
+
+        if (strcmp(redirect_type, ">>") == 0) {
+            if (split->out == NULL) {
+                split->out = malloc(sizeof(Stream));
+            }
+            split->out->type = FileStream_T;
+            split->out->options.file.name = file_name;
+            split->out->options.file.open_flag = O_APPEND;
+        } else if (strcmp(redirect_type, ">") == 0) {
+            if (split->out == NULL) {
+                split->out = malloc(sizeof(Stream));
+            }
+            split->out->type = FileStream_T;
+            split->out->options.file.name = file_name;
+            split->out->options.file.open_flag = O_WRONLY;
+        } else if (strcmp(redirect_type, "<") == 0) {
+            if (split->in == NULL) {
+                split->in = malloc(sizeof(Stream));
+            }
+            split->in->type = FileStream_T;
+            split->in->options.file.name = file_name;
+            split->in->options.file.open_flag = O_RDONLY;
+        } else {
+            fprintf(stderr, "wrong\n");
+            exit(-1);
+        }
+    }
+}
+
+
+RedirectSplit * split_redirect_if_last_right(const char *str) {
+    RedirectSplit *split = create_redirect_with_command_from_string(str);
+
+    if (split->has_redirects) {
+        fill_redirect_with_redirects_and_file_names(split, str);
     }
 
     return split;
@@ -387,7 +401,7 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
 	Node *node = new_node();
 	node->type = PipeNode_T;
 	OperandsNode *pipe = &node->value.operands;
-	pipe->operands = pieces->count;
+	pipe->count = pieces->count;
 	pipe->nodes = malloc(pieces->count * sizeof(Node*));
 
 	int i;
@@ -402,11 +416,11 @@ Node * create_operands_from_string (SplitResult *pieces, NodeType type) {
 	Node *node = new_node();
 	node->type = type;
 	OperandsNode *andNode = &node->value.operands;
-	andNode->operands = pieces->count;
+	andNode->count = pieces->count;
 	andNode->nodes = malloc(pieces->count * sizeof(Node*));
 
 	int i = 0;
-	for (i = 0; i < andNode->operands; i++) {
+	for (i = 0; i < andNode->count; i++) {
 		andNode->nodes[i] = create_tree_from_string(pieces->sub_strings[i]);
 	}
 

@@ -55,10 +55,10 @@ void check_executable_equals(ExecutableNode *expected, ExecutableNode *actual) {
 
 void check_operands_equals(OperandsNode *expected, OperandsNode *actual) {
     my_assert(expected != NULL && actual != NULL, "null executable");
-    my_assert(expected->operands == actual->operands, "differen operands count");
+    my_assert(expected->count == actual->count, "differen operands count");
 
     int i;
-    for (i = 0; i < expected->operands; i++) {
+    for (i = 0; i < expected->count; i++) {
         check_tree_equals(expected->nodes[i], actual->nodes[i]);
     }
 }
