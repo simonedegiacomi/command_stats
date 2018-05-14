@@ -384,7 +384,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
 
 
 	// Parse arguments
-	executable->argv = malloc(count * sizeof(char*));
+	executable->argv = malloc((count + 1) * sizeof(char*));
 	count = 0;
 
 	for (i = 0; string[i] != '\0'; i++) {
@@ -417,6 +417,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
 			i--;
 		}
 	}
+	executable->argv[count] = NULL;
 
 	return node;
 }
@@ -459,37 +460,4 @@ Node * create_and_from_strings (SplitResult *pieces) {
 
 Node * create_or_from_strings (SplitResult *pieces) {
 	return create_operands_from_string(pieces, OrNode_T);
-}
-
-char buffer[100] = "\0";
-
-void _printa (Node *tree) {
-	printf("%s", buffer);
-	switch (tree->type) {
-		case PipeNode_T:
-			printf("pipe\n");
-			int i;
-			for (i = tree->value.operands.count - 1; i >= 0; i--) {
-				strcat(buffer, "|");
-			}
-			int tot = strlen(buffer) - 1;
-			for (i = tree->value.operands.count - 1; i >= 0; i--) {
-				Node *n = tree->value.operands.nodes[i];
-
-				buffer[tot] = 'L';
-				printa(n);
-				buffer[tot--] = '\0';
-			}
-			break;
-		case ExecutableNode_T:
-			printf(" %s\n", tree->value.executable.path);
-			break;
-		default:
-			break;
-	}
-}
-
-
-void printa (Node *tree) {
-	_printa(tree);
 }

@@ -80,7 +80,6 @@ void should_parse_ls_pipe_wc_pipe_wc() {
     };
 
     check_tree_equals(&expected, parsed);
-    printa(&expected);
 }
 
 void should_parse_and() {
