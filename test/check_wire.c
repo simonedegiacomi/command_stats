@@ -86,18 +86,14 @@ void should_wire_operands() {
     wire(&and);
 
     assert_std_stream(and.std_in, STDIN_FILENO);
-
     assert_std_stream(true->std_in, STDIN_FILENO);
     assert_std_stream(false->std_in, STDIN_FILENO);
+    assert_std_stream(and.std_out, STDOUT_FILENO);
 
-
-
-    my_assert(and.std_out->type == ConcatenatedStream_T, "and stdout not a concatenator");
-    assert_std_stream(and.std_out->options.concat.to, STDOUT_FILENO);
-    my_assert(and.std_out->options.concat.from_count == 2, "wrong count");
-    assert_pipe_connected(true->std_out, and.std_out->options.concat.from[0]);
-    assert_pipe_connected(false->std_out, and.std_out->options.concat.from[1]);
-
+    Stream *concat = and.value.operands.concatenator;
+    my_assert(concat->options.concat.from_count == and.value.operands.count, "%d != %d", concat->options.concat.from_count, and.value.operands.count);
+    assert_pipe_connected(true->std_out, concat->options.concat.from[0]);
+    assert_pipe_connected(false->std_out, concat->options.concat.from[1]);
 }
 
 void run_wire_tests() {

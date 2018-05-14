@@ -9,6 +9,7 @@ typedef enum NodeType {
 } NodeType;
 
 typedef struct Node Node;
+typedef struct Stream Stream;
 
 
 typedef struct ExecutableNode {
@@ -22,6 +23,7 @@ typedef struct OperandsNode {
     //TODO: rename everywhere with operands_count
     int 	count;
     Node 	**nodes;
+    Stream  *concatenator;
 } OperandsNode;
 
 typedef enum StreamType {
@@ -40,7 +42,7 @@ typedef struct PipeStream {
     int descriptors[2];
 } PipeStream;
 
-typedef struct Stream Stream;
+
 typedef struct ConcatenatedStream {
 
     Stream *to;

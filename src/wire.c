@@ -8,7 +8,7 @@
 
 void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out);
 
-Stream * wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out);
+void wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out);
 
 Stream *create_std_stream(int direction);
 
@@ -37,7 +37,7 @@ void wire_r(Node *tree, Stream *in, Stream *out) {
 
         case AndNode_T:
         case OrNode_T:
-            tree->std_out = wire_operand_nodes(&tree->value.operands, in, out);
+            wire_operand_nodes(&tree->value.operands, in, out);
             break;
         default:
             fprintf(stderr, "[WIRE] unexpected node type\n");
@@ -60,26 +60,45 @@ PipeStream *create_pipe() {
 }
 
 void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out) {
-    operands->nodes[0]->std_in = in;
-
-    int pipe_count = operands->count;
+    // create all the pipes
+    int pipe_count      = operands->count - 1;
+    PipeStream **pipes  = malloc(pipe_count * sizeof(PipeStream*));
     int i;
     for (i = 0; i < pipe_count; i++) {
-
-        Node *left = operands->nodes[i];
-        Node *right = operands->nodes[i + 1];
-        PipeStream *left_to_right = create_pipe();
-
-        left->std_out = wrap_pipe_into_stream(left_to_right, WRITE_INTO_PIPE);
-        right->std_in = wrap_pipe_into_stream(left_to_right, READ_FROM_PIPE);
+        pipes[i] = create_pipe();
     }
 
-    int last_node = operands->count - 1;
-    operands->nodes[last_node]->std_out = out;
+    // wire first node
+    Node *first                 = operands->nodes[0];
+    PipeStream *first_to_second = pipes[0];
+    wire_r(first, in, wrap_pipe_into_stream(first_to_second, WRITE_INTO_PIPE));
+
+    // wire middle nodes
+    for (i = 1; i < pipe_count - 1; i++) {
+        // i - 1 is the left node, i the center and i + 1 the right node
+        Node *center                = operands->nodes[i];
+
+        PipeStream *left_to_center  = pipes[i - 1];
+        PipeStream *center_to_right = pipes[i];
+        
+        wire_r(center,
+               wrap_pipe_into_stream(left_to_center, READ_FROM_PIPE),
+               wrap_pipe_into_stream(center_to_right, WRITE_INTO_PIPE));
+    }
+
+    // wire last node
+    int last_node_index = pipe_count;
+    int last_pipe_index = pipe_count - 1;
+    Node *last          = operands->nodes[last_node_index];
+    PipeStream *to_last = pipes[last_pipe_index];
+    wire_r(last, wrap_pipe_into_stream(to_last, READ_FROM_PIPE), out);
+
+    // we don't need the array with all the pipes anymore
+    free(pipes);
 }
 
 
-Stream *wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out) {
+void wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out) {
     operands->nodes[0]->std_in = in;
 
     Stream *end = malloc(sizeof(Stream));
@@ -90,18 +109,20 @@ Stream *wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out) {
     int i;
     for (i = 0; i < operands->count; i++) {
         Node *node = operands->nodes[i];
+        PipeStream *node_to_concat = create_pipe();
 
-        if (node->std_in == NULL) {
-            node->std_in = create_std_stream(STDIN_FILENO);
+        Stream *node_in = node->std_in;
+        if (node_in == NULL) {
+            node_in = create_std_stream(STDIN_FILENO);
         }
 
-        PipeStream *node_to_concat = create_pipe();
-        node->std_out = wrap_pipe_into_stream(node_to_concat, WRITE_INTO_PIPE);
+        wire_r(node, node_in, wrap_pipe_into_stream(node_to_concat, WRITE_INTO_PIPE));
+
         end->options.concat.from[i] = wrap_pipe_into_stream(node_to_concat, READ_FROM_PIPE);
     }
 
     end->options.concat.to = out;
-    return end;
+    operands->concatenator = end;
 }
 
 

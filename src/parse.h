@@ -9,4 +9,6 @@ void initialize_parser();
 Node * create_tree_from_string (const char *raw_string);
 
 
+
+void printa (Node * to_print);
 #endif
