@@ -3,9 +3,15 @@
 Node *new_node(){
     // TODO: Check all initializations, also on tests
     Node *node = malloc(sizeof(Node));
-    node->stdins_count  = 0;
-    node->stdins        = NULL;
-    node->stdout        = NULL;
+    node->std_in        = NULL;
+    node->std_out       = NULL;
+    return node;
+}
+
+Node *new_executable_node(const char* path) {
+    Node *node = new_node();
+    node->type = ExecutableNode_T;
+    node->value.executable.path = strdup(path);
     return node;
 }
 

@@ -244,10 +244,10 @@ RedirectSplit * split_redirect_if_last_right(const char *str) {
 
 void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_redirects) {
     if (string_and_redirects->in != NULL) {
-        parsed->stdins = wrap_stream_into_array(string_and_redirects->in);
+        parsed->std_in = string_and_redirects->in;
     }
     if (string_and_redirects->out != NULL) {
-        parsed->stdout = string_and_redirects->out;
+        parsed->std_out = string_and_redirects->out;
     }
 }
 

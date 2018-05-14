@@ -27,7 +27,8 @@ typedef struct OperandsNode {
 typedef enum StreamType {
     FileDescriptorStream_T,
     FileStream_T,
-    PipeStream_T
+    PipeStream_T,
+    ConcatenatedStream_T
 } StreamType;
 
 typedef struct FileStream {
@@ -39,12 +40,23 @@ typedef struct PipeStream {
     int descriptors[2];
 } PipeStream;
 
+typedef struct Stream Stream;
+typedef struct ConcatenatedStream {
+
+    Stream *to;
+    int from_count;
+    Stream **from;
+
+} ConcatenatedStream;
+
 typedef struct Stream {
     StreamType type;
     int file_descriptor;
     union {
-        FileStream 	file;
-        PipeStream  pipe;
+        FileStream 	        file;
+        PipeStream          pipe;
+        ConcatenatedStream  concat;
+
     } options;
 } Stream;
 
@@ -64,9 +76,8 @@ struct Node {
     // Array of in and outs.
     // TODO: To implement redirect for any file scriptor we need to change these
     // two fields into a sort of map
-    int stdins_count;
-    Stream **stdins;
-    Stream *stdout;
+    Stream *std_in;
+    Stream *std_out;
 
     ExecutionResult *result;
 };
@@ -75,6 +86,7 @@ struct Node {
 
 
 Node *new_node();
+Node *new_executable_node(const char* path);
 Stream *        wrap_pipe_into_stream   (PipeStream *pipe_stream, int direction);
 Stream **       wrap_stream_into_array  (Stream *stream);
 

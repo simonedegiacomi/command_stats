@@ -34,11 +34,11 @@ void check_tree_equals(Node *expected, Node *actual) {
             break;
     }
 
-    if (expected->stdins != NULL) {
-        check_streams_equals(expected->stdins, expected->stdins_count, actual->stdins, actual->stdins_count);
+    if (expected->std_in != NULL) {
+        check_stream_equals(expected->std_in, actual->std_in);
     }
-    if (expected->stdout != NULL) {
-        check_stream_equals(expected->stdout, actual->stdout);
+    if (expected->std_out != NULL) {
+        check_stream_equals(expected->std_out, actual->std_out);
     }
 }
 
