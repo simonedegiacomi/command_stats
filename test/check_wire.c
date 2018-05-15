@@ -69,7 +69,33 @@ void should_wire_a_pipe() {
     assert_std_stream(wc->std_out, STDOUT_FILENO);
 }
 
-void should_wire_operands() {
+void should_wire_two_pipes () {
+    Node *ls = new_executable_node("ls");
+    Node *wc1 = new_executable_node("wc");
+    Node *wc2 = new_executable_node("wc");
+    Node *nodes[3] = {ls, wc1, wc2};
+    Node pipe = {
+            .type = PipeNode_T,
+            .value = {
+                    .operands = {
+                            .count = 3,
+                            .nodes = nodes
+                    }
+            }
+    };
+
+    wire(&pipe);
+
+    assert_std_stream(pipe.std_out, STDOUT_FILENO);
+    assert_std_stream(pipe.std_in, STDIN_FILENO);
+
+    assert_std_stream(ls->std_in, STDIN_FILENO);
+    assert_pipe_connected(ls->std_out, wc1->std_in);
+    assert_pipe_connected(wc1->std_out, wc2->std_in);
+    assert_std_stream(wc2->std_out, STDOUT_FILENO);
+}
+
+void should_wire_operands () {
     Node *true = new_executable_node("true");
     Node *false = new_executable_node("false");
     Node *nodes[2] = {true, false};
@@ -100,6 +126,7 @@ void run_wire_tests() {
     printf("[WIRE TEST] Start tests\n");
     should_wire_a_single_node_tree_to_std();
     should_wire_a_pipe();
+    should_wire_two_pipes();
     should_wire_operands();
     printf("[WIRE TEST] All test passed\n");
 }

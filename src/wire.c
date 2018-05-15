@@ -61,6 +61,7 @@ PipeStream *create_pipe() {
 
 void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out) {
     // create all the pipes
+    int nodes_count     = operands->count;
     int pipe_count      = operands->count - 1;
     PipeStream **pipes  = malloc(pipe_count * sizeof(PipeStream*));
     int i;
@@ -74,7 +75,8 @@ void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out) {
     wire_r(first, in, wrap_pipe_into_stream(first_to_second, WRITE_INTO_PIPE));
 
     // wire middle nodes
-    for (i = 1; i < pipe_count - 1; i++) {
+    for (i = 1; i < nodes_count - 1; i++) {
+
         // i - 1 is the left node, i the center and i + 1 the right node
         Node *center                = operands->nodes[i];
 

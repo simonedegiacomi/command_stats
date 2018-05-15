@@ -8,8 +8,6 @@ void execute_operands(Node *node);
 
 void run_execute_executable_father (Node *node, int child_pid) ;
 void run_execute_executable_child (Node *node);
-void run_execute_pipe_father (Node *node, int child_pid);
-void run_execute_pipe_child (Node *node);
 void run_execute_operands_father (Node *node, int child_pid);
 void run_execute_operands_child (Node *node);
 
@@ -54,6 +52,16 @@ void execute_executable(Node *node) {
 }
 
 void run_execute_executable_father (Node *node, int child_pid) {
+    // TODO: Problem here
+    if (node->std_in->type == PipeStream_T) {
+        close(node->std_in->file_descriptor);
+    }
+    if (node->std_out->type == PipeStream_T) {
+        close(node->std_out->file_descriptor);
+    }
+
+
+
     ExecutionResult *res = malloc(sizeof(ExecutionResult));
     struct rusage r_usage;
 
@@ -109,42 +117,39 @@ void init_stream_if_needed(Stream *to_init, int direction) {
 
 
 
-void execute_pipe(Node *node) {
-    int fork_result = fork();
-
-    if (fork_result < 0) {
-        fprintf(stderr, "[EXECUTE] can't fork to start pipe manager\n");
-        node->result = NULL;
-    } else if (fork_result > 0) {
-        int child_pid = fork_result;
-        run_execute_pipe_father(node, child_pid);
-    } else {
-        run_execute_pipe_child(node);
-    }
-}
+void execute_pipe(Node *pipe_node) {
+    int operands_count = pipe_node->value.operands.count;
+    pid_t *children_pid = malloc(operands_count * sizeof(pid_t));
 
 
-void run_execute_pipe_father (Node *node, int child_pid)  {
-
-}
-
-
-void run_execute_pipe_child (Node *node) {
-    //il gestore della pipe organizza gli input e gli output sui fd
-
-    int operands_count = node->value.operands.count;
-    pid_t *fork_pid = malloc(operands_count * sizeof(pid_t));
     for (int i = 0; i < operands_count; i++) {
-        fork_pid[i] = fork();
-        if (fork_pid[i] == 0) {
-            execute(node);
+        Node *to_execute = pipe_node->value.operands.nodes[i];
+        int fork_res = fork();
+
+        if (fork_res < 0) {
+            fprintf(stderr, "[EXECUTE] can't fork to start a pipe node\n");
+        } else if (fork_res > 0) {
+            children_pid[i] = fork_res;
+
+            // TODO: Problem here
+            if (to_execute->std_in->type == PipeStream_T) {
+                close(to_execute->std_in->file_descriptor);
+            }
+            if (to_execute->std_out->type == PipeStream_T) {
+                close(to_execute->std_out->file_descriptor);
+            }
+
+        } else {
+            execute(to_execute);
+            exit(0);
         }
     }
 
     for (int i = 0; i < operands_count; i++) {
-        waitpid(fork_pid[i], NULL, 0);
+        waitpid(children_pid[i], NULL, 0);
     }
 }
+
 
 void execute_operands(Node *node) {
     int fork_result = fork();
