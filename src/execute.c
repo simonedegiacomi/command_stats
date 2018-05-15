@@ -152,24 +152,6 @@ void execute_pipe(Node *pipe_node) {
 
 
 void execute_operands(Node *node) {
-    int fork_result = fork();
-
-    if (fork_result < 0) {
-        fprintf(stderr, "[EXECUTE] can't fork to start pipe manager\n");
-        node->result = NULL;
-    } else if (fork_result > 0) {
-        int child_pid = fork_result;
-        run_execute_operands_father(node, child_pid);
-    } else {
-        run_execute_operands_child(node);
-    }
-}
-
-void run_execute_operands_father (Node *node, int child_pid) {
-
-}
-
-void run_execute_operands_child (Node *operator_node) {
     int operands_count = operator_node->value.operands.count;
     int i;
     BOOL stop = FALSE;
@@ -204,3 +186,5 @@ void run_execute_operands_child (Node *operator_node) {
         }
     }
 }
+
+
