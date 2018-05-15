@@ -1,6 +1,8 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#include "common.h"
+
 typedef enum NodeType {
     PipeNode_T,
     ExecutableNode_T,
@@ -39,7 +41,8 @@ typedef struct FileStream {
 } FileStream;
 
 typedef struct PipeStream {
-    int descriptors[2];
+    BOOL initialized;
+    int  descriptors[2];
 } PipeStream;
 
 
@@ -56,7 +59,7 @@ typedef struct Stream {
     int file_descriptor;
     union {
         FileStream 	        file;
-        PipeStream          pipe;
+        PipeStream          *pipe;
         ConcatenatedStream  concat;
 
     } options;
@@ -82,6 +85,7 @@ struct Node {
     Stream *std_out;
 
     ExecutionResult *result;
+    int pid;
 };
 
 

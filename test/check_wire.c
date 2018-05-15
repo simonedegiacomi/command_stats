@@ -23,10 +23,9 @@ void assert_pipe_connected(Stream *from, Stream *to) {
     my_assert(from->type == PipeStream_T &&
               to->type == PipeStream_T, "stream not a pipe");
 
-    PipeStream *from_pipe = &from->options.pipe;
-    PipeStream *to_pipe = &to->options.pipe;
-    my_assert(from_pipe->descriptors[0] == to_pipe->descriptors[0] &&
-              from_pipe->descriptors[1] == to_pipe->descriptors[1], "wrong pipe descriptors");
+    PipeStream *from_pipe = from->options.pipe;
+    PipeStream *to_pipe = to->options.pipe;
+    my_assert(from_pipe == to_pipe, "wrong pipe descriptors");
 }
 
 void should_wire_a_single_node_tree_to_std() {

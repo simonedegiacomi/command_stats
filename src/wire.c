@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "wire.h"
 #include "common.h"
+#include "structs.h"
 
 
 void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out);
@@ -55,7 +56,7 @@ Stream *create_std_stream(int direction) {
 
 PipeStream *create_pipe() {
     PipeStream *stream = malloc(sizeof(PipeStream));
-    pipe(stream->descriptors);
+    stream->initialized = FALSE;
     return stream;
 }
 

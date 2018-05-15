@@ -4,6 +4,7 @@
 #include "../src/parse.h"
 #include "my_assert.h"
 #include "utils.h"
+#include "../src/common.h"
 #include <fcntl.h>
 
 

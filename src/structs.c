@@ -1,3 +1,4 @@
+#include "structs.h"
 #include "common.h"
 
 Node *new_node(){
@@ -20,8 +21,7 @@ Stream * wrap_pipe_into_stream (PipeStream *pipe_stream, int direction) {
 
     stream->type 			                = PipeStream_T;
     stream->file_descriptor                 = pipe_stream->descriptors[direction];
-    stream->options.pipe.descriptors[0] 	= pipe_stream->descriptors[0];
-    stream->options.pipe.descriptors[1] 	= pipe_stream->descriptors[1];
+    stream->options.pipe                    = pipe_stream;
 
     return stream;
 }

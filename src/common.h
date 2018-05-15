@@ -6,9 +6,10 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/resource.h>
 #include <stdlib.h>
-#include <strings.h>
-#include "structs.h"
+#include <string.h>
 
 
 #define BOOL char
