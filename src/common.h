@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <strings.h>

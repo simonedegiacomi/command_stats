@@ -8,8 +8,6 @@ void execute_operands(Node *node);
 
 void run_execute_executable_father (Node *node, int child_pid) ;
 void run_execute_executable_child (Node *node);
-void run_execute_operands_father (Node *node, int child_pid);
-void run_execute_operands_child (Node *node);
 
 void init_streams_if_needed(Node *node);
 void init_stream_if_needed(Stream *to_init, int direction);
