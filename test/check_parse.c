@@ -302,10 +302,10 @@ void run_parser_test() {
 
     should_parse_parentesis();
     should_parse_redirect();
-    should_parse_and_inside_brackets_with_pipe(); // ma va davvero???*/
+    should_parse_and_inside_brackets_with_pipe(); // ma va davvero???
 
-    //should_parse_near_quotation_marks_as_single_parameter();
-    //should_parse_escaped_quotation_marks();
+    should_parse_near_quotation_marks_as_single_parameter();
+    should_parse_escaped_quotation_marks();
 
     printf("[PARSER TEST] All test passed\n");
 }

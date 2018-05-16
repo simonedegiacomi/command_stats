@@ -4,13 +4,14 @@
 #include <regex.h>
 #include "common.h"
 #include "parse.h"
+#include "structs.h"
 
 const char * remove_brackets_if_alone(const char *str);
 
 // keep together substrings split by the same operator
 typedef struct SplitResult {
-	int         count;
-	const char  **sub_strings;
+    int         count;
+    const char  **sub_strings;
 } SplitResult;
 
 SplitResult * split_string_for_operator (const char *string, regex_t *separator);
@@ -40,12 +41,12 @@ void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_r
 // entry for the array that describes the priority of the operands.
 typedef struct PriorityMapEntry {
 
-	char 		*separator_regex;
+    char 		*separator_regex;
 
-	regex_t*    compiled_separator;
+    regex_t*    compiled_separator;
 
-	// function to construct a node from the split string
-	Node *(*handler) (SplitResult*);
+    // function to construct a node from the split string
+    Node *(*handler) (SplitResult*);
 } PriorityMapEntry;
 
 
@@ -56,16 +57,16 @@ Node * create_or_from_strings			(SplitResult *pieces);
 Node * create_executable_from_string	(SplitResult *pieces);
 
 PriorityMapEntry priority_map[] = {
-	{
-		.separator_regex 	= "&&",
-		.handler 			= create_and_from_strings
-	}, { // Or operator
-		.separator_regex	= "\\|\\|",
-		.handler 			= create_or_from_strings
-	}, { // Pipe operator
-		.separator_regex	= "[^|]\\|[^|]",
-		.handler 			= create_pipe_from_strings
-	}
+        {
+                .separator_regex 	= "&&",
+                .handler 			= create_and_from_strings
+        }, { // Or operator
+                .separator_regex	= "\\|\\|",
+                .handler 			= create_or_from_strings
+        }, { // Pipe operator
+                .separator_regex	= "[^|]\\|[^|]",
+                .handler 			= create_pipe_from_strings
+        }
 };
 const int operators_count = sizeof(priority_map) / sizeof(PriorityMapEntry);
 
@@ -82,7 +83,7 @@ void initialize_parser() {
         return;
     }
     initialize_regexes();
-	parser_initialized = TRUE;
+    parser_initialized = TRUE;
 }
 
 void initialize_regexes() {
@@ -97,17 +98,17 @@ void initialize_regexes() {
 }
 
 regex_t * compile_regex (const char *regex) {
-	regex_t *compiled = malloc(sizeof(regex_t));
-	int compile_res = regcomp(compiled, regex, REG_EXTENDED);
-	if (compile_res != 0) {
-		char error_str[1000];
-		regerror(compile_res, compiled, error_str, sizeof(error_str));
-		fprintf(stderr, "[PARSER] Regex compilation failed: %s\n", error_str);
+    regex_t *compiled = malloc(sizeof(regex_t));
+    int compile_res = regcomp(compiled, regex, REG_EXTENDED);
+    if (compile_res != 0) {
+        char error_str[1000];
+        regerror(compile_res, compiled, error_str, sizeof(error_str));
+        fprintf(stderr, "[PARSER] Regex compilation failed: %s\n", error_str);
 
 
-		exit(-1);
-	}
-	return compiled;
+        exit(-1);
+    }
+    return compiled;
 }
 
 
@@ -148,21 +149,21 @@ Node * create_tree_from_string (const char *raw_string) {
 
 
 const char * remove_brackets_if_alone(const char *str) {
-	// TODO: Compile only the first time
+    // TODO: Compile only the first time
     char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
-	regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
+    regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
 
-	regmatch_t matches[2];
-	int res = regexec(regex, str, 2, matches, 0);
-	regmatch_t match = matches[1];
+    regmatch_t matches[2];
+    int res = regexec(regex, str, 2, matches, 0);
+    regmatch_t match = matches[1];
 
-	if (res != REG_NOMATCH) {
-		const char *start = str + match.rm_so;
-		size_t to_copy = (size_t) (match.rm_eo - match.rm_so);
-		return strndup(start, to_copy);
-	}
+    if (res != REG_NOMATCH) {
+        const char *start = str + match.rm_so;
+        size_t to_copy = (size_t) (match.rm_eo - match.rm_so);
+        return strndup(start, to_copy);
+    }
 
-	return strdup(str);
+    return strdup(str);
 }
 
 const char *create_string_from_match(const char *str, regmatch_t *match) {
@@ -254,210 +255,209 @@ void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_r
 
 
 int count_occurrences_of_regex (const char *string, regex_t *separator) {
-	regmatch_t match;
-	int count = 0;
-	const char *str = string;
-	while (1) {
-		int res = regexec(separator, str, 1, &match, 0);
+    regmatch_t match;
+    int count = 0;
+    while (string[0] != '\0') {
+        int res = regexec(separator, string, 1, &match, 0);
 
-		if (res == REG_NOMATCH) {
-			break;
-		} else {
-			count++;
-			str += match.rm_eo;
-		}
-	};
+        if (res == REG_NOMATCH) {
+            break;
+        } else {
+            count++;
+            string += match.rm_eo;
 
-	return count;
+            if (match.rm_eo - match.rm_so <= 0) {
+                string++;
+            }
+        }
+    };
+
+    return count;
 }
 
 const char * obfuscate_parentesis_in_string (const char *str) {
-	size_t len = strlen(str);
-	char *obs = malloc(len * sizeof(char));
+    size_t len = strlen(str);
+    char *obs = malloc(len * sizeof(char));
 
-	int i;
-	int parentesis = 0;
-	for (i = 0; i < len; i++) {
-		if (str[i] == '(') {
-			parentesis++;
-		}
-		obs[i] = (parentesis > 0) ? '#' : str[i];
-		if (str[i] == ')') {
-			parentesis--;
-		}
-	}
-	obs[len] = '\0';
+    int i;
+    int parentesis = 0;
+    for (i = 0; i < len; i++) {
+        if (str[i] == '(') {
+            parentesis++;
+        }
+        obs[i] = (parentesis > 0) ? '#' : str[i];
+        if (str[i] == ')') {
+            parentesis--;
+        }
+    }
+    obs[len] = '\0';
 
-	return obs;
+    return obs;
 }
 
 SplitResult *split_string_for_operator (const char *string, regex_t *separator) {
-	const char *obfuscated_string = obfuscate_parentesis_in_string(string);
+    const char *obfuscated_string = obfuscate_parentesis_in_string(string);
 
-	int operators_count = count_occurrences_of_regex(obfuscated_string, separator);
-	if (operators_count <= 0) {
-		free((void *) obfuscated_string);
-		return NULL;
-	}
+    int operators_count = count_occurrences_of_regex(obfuscated_string, separator);
+    if (operators_count <= 0) {
+        free((void *) obfuscated_string);
+        return NULL;
+    }
 
-	int pieces = operators_count + 1;
-	SplitResult *split = malloc(sizeof(SplitResult));
-	split->count = pieces;
-	split->sub_strings = malloc(pieces * sizeof(char*));
+    int pieces = operators_count + 1;
+    SplitResult *split = malloc(sizeof(SplitResult));
+    split->count = pieces;
+    split->sub_strings = malloc(pieces * sizeof(char*));
 
 
-	int i;
-	const char *obs_str = obfuscated_string;
-	const char *str = string;
-	regmatch_t match;
-	for (i = 0; i < pieces; i++) {
-		int res = regexec(separator, obs_str, 1, &match, 0);
+    int i;
+    const char *obs_str = obfuscated_string;
+    const char *str = string;
+    regmatch_t match;
+    for (i = 0; i < pieces; i++) {
+        int res = regexec(separator, obs_str, 1, &match, 0);
 
-		const char *start = str;
-		int to_copy;
+        const char *start = str;
+        int to_copy;
 
-		if (res == REG_NOMATCH) {
-			to_copy = strlen(obs_str);
-		} else {
-			to_copy = match.rm_so;
-		}
+        if (res == REG_NOMATCH) {
+            to_copy = strlen(obs_str);
+        } else {
+            to_copy = match.rm_so;
+        }
 
-		split->sub_strings[i] = strndup(start, to_copy);
+        split->sub_strings[i] = strndup(start, to_copy);
 
-		obs_str += match.rm_eo;
-		str += match.rm_eo;
-	}
+        obs_str += match.rm_eo;
+        str += match.rm_eo;
+    }
 
-	free((void *) obfuscated_string);
-	return split;
+    free((void *) obfuscated_string);
+    return split;
+}
+
+char *clear_argument (const char *to_clear) {
+    if (strchr(to_clear, '\\') == NULL) {
+        return strdup(to_clear);
+    }
+
+    printf("Pulisco: %s\n", to_clear);
+    const char *CLEAR_ARGUMENTS = "([^\\\\]+)";
+
+    regex_t *regex = compile_regex(CLEAR_ARGUMENTS);
+    regmatch_t match;
+
+    char *res = malloc(strlen(to_clear) * sizeof(char));
+    res[0] = '\0';
+    while (regexec(regex, to_clear, 1, &match, 0) != REG_NOMATCH) {
+        const char *start = to_clear + match.rm_so;
+        const char *end = to_clear + match.rm_eo;
+        printf("con %s\n", strndup(start, end - start));
+        strncat(res, start, end-start);
+        to_clear += match.rm_eo;
+
+    }
+
+    printf("Pilita: %s\n", res);
+
+
+    return res;
 }
 
 
 Node * create_executable_from_string (SplitResult *pieces) {
+    const char *MATCH_ARGUMENTS = "( *\"(([^\"\\\\]|\\\\.)+)\" *)|( *([^\"][^ ]*) *)";
+    regex_t *regex = compile_regex(MATCH_ARGUMENTS);
+
     const char *string = pieces->sub_strings[0];
-	Node *node = new_node();
-	node->type = ExecutableNode_T;
-	ExecutableNode *executable = &node->value.executable;
+    int arguments_count = count_occurrences_of_regex(string, regex);
+    char **argv = malloc((arguments_count + 1) * sizeof(char*)); // The last string of argv must be a null pointer
 
-	// Skip space
-	while (string[0] == ' ') {
-		string++;
-	}
+    int i;
+    const char *last_arg_end = NULL;
+    BOOL last_arg_was_quotes = FALSE;
+    int joined_arguments = 0;
+    for (i = 0; i < arguments_count; i++) {
+        regmatch_t matches[6];
 
-	char *copyToFree = strdup(string);
-	char *string_copy = copyToFree;
-
-	// Parse path
-	char *path = strsep(&string_copy, " ");
-	executable->path = strdup(path);
-	free(copyToFree);
-
-	// WARNING: unreadable code below!
-	// TODO: Use regex
-
-	int i;
-	int count = 0;
-	for (i = 0; string[i] != '\0'; i++) {
-		// Skip space
-		while (string[i] == ' ') {
-			i++;
-		}
-
-		if (string[i] == '\"') {
-			i++;
-			while (string[i] != '\0' && (string[i] != '\"' || string[i - 1] == '\\')) {
-				i++;
-			}
-			if (string[i] != '\0' && string[i + 1] != '\"') {
-				count++;
-			}
-		} else if (string[i] != '\0') {
-			i++;
-			while (string[i] != '\0' && (string[i] != ' ' || string [i - 1] == '\\')) {
-				i++;
-			}
-			count++;
-			i--;
-		}
-	}
-	executable->argc = count;
+        int res = regexec(regex, string, 6, matches, 0);
+        if (res == REG_NOMATCH) {
+            fprintf(stderr, "[PARSER] errore\n");
+        }
 
 
-	// Parse arguments
-	executable->argv = malloc((count + 1) * sizeof(char*));
-	count = 0;
+        // select group
+        regmatch_t *match_to_use = &matches[5]; // 5 -> not quoted
+        BOOL arg_is_quoted = FALSE;
+        if (match_to_use->rm_so == match_to_use->rm_eo) {
+            arg_is_quoted = TRUE;
+            match_to_use = &matches[2]; // 2 -> quoted
+        }
 
-	for (i = 0; string[i] != '\0'; i++) {
-		// Skip space
-		while (string[i] == ' ') {
-			i++;
-		}
 
-		int start = i;
-		if (string[i] == '\"') {
-			i++;
-			start = i;
-			while (string[i] != '\0' && (string[i] != '\"' || string[i - 1] == '\\')) {
-				i++;
-			}
-			if (string[i] != '\0' && string[i + 1] != '\"') {
-				int end = i;
-				int to_copy = end - start;
-				executable->argv[count++] = strndup(&string[start], to_copy);
+        const char *start = string + match_to_use->rm_so;
+        const char *end = string + match_to_use->rm_eo;
 
-			}
-		} else if (string[i] != '\0') {
-			i++;
-			while (string[i] != '\0' && (string[i] != ' ' || string [i - 1] == '\\')) {
-				i++;
-			}
-			int end = i;
-			int to_copy = end - start;
-			executable->argv[count++] = strndup(&string[start], to_copy);
-			i--;
-		}
-	}
-	executable->argv[count] = NULL;
+        if (arg_is_quoted && last_arg_was_quotes && (start - 2) == last_arg_end) {
+            i--;
+            char *temp = strndup(start, (end - start));
+            argv[i] = strcat(argv[i], clear_argument(temp));
+            joined_arguments++;
+        } else {
+            argv[i] = clear_argument(strndup(start, (end - start)));
+        }
 
-	return node;
+        last_arg_end = end;
+        last_arg_was_quotes = arg_is_quoted;
+
+        string = string + matches[0].rm_eo;
+    }
+
+    argv[arguments_count] = NULL;
+
+    Node *node = new_executable_node(argv[0]);
+    node->value.executable.argv = argv;
+    node->value.executable.argc = arguments_count - joined_arguments;
+
+    return node;
 }
 
 
 Node * create_pipe_from_strings (SplitResult *pieces) {
-	Node *node = new_node();
-	node->type = PipeNode_T;
-	OperandsNode *pipe = &node->value.operands;
-	pipe->count = pieces->count;
-	pipe->nodes = malloc(pieces->count * sizeof(Node*));
+    Node *node = new_node();
+    node->type = PipeNode_T;
+    OperandsNode *pipe = &node->value.operands;
+    pipe->count = pieces->count;
+    pipe->nodes = malloc(pieces->count * sizeof(Node*));
 
-	int i;
-	for (i = 0; i < pieces->count; i++) {
-		pipe->nodes[i] = create_tree_from_string(pieces->sub_strings[i]);
-	}
+    int i;
+    for (i = 0; i < pieces->count; i++) {
+        pipe->nodes[i] = create_tree_from_string(pieces->sub_strings[i]);
+    }
 
-	return node;
+    return node;
 }
 
 Node * create_operands_from_string (SplitResult *pieces, NodeType type) {
-	Node *node = new_node();
-	node->type = type;
-	OperandsNode *andNode = &node->value.operands;
-	andNode->count = pieces->count;
-	andNode->nodes = malloc(pieces->count * sizeof(Node*));
+    Node *node = new_node();
+    node->type = type;
+    OperandsNode *andNode = &node->value.operands;
+    andNode->count = pieces->count;
+    andNode->nodes = malloc(pieces->count * sizeof(Node*));
 
-	int i = 0;
-	for (i = 0; i < andNode->count; i++) {
-		andNode->nodes[i] = create_tree_from_string(pieces->sub_strings[i]);
-	}
+    int i = 0;
+    for (i = 0; i < andNode->count; i++) {
+        andNode->nodes[i] = create_tree_from_string(pieces->sub_strings[i]);
+    }
 
-	return node;
+    return node;
 }
 
 Node * create_and_from_strings (SplitResult *pieces) {
-	return create_operands_from_string(pieces, AndNode_T);
+    return create_operands_from_string(pieces, AndNode_T);
 }
 
 
 Node * create_or_from_strings (SplitResult *pieces) {
-	return create_operands_from_string(pieces, OrNode_T);
+    return create_operands_from_string(pieces, OrNode_T);
 }
