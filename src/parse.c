@@ -49,22 +49,36 @@ typedef struct PriorityMapEntry {
 Node * create_pipe_from_strings			(SplitResult *pieces);
 Node * create_and_from_strings			(SplitResult *pieces);
 Node * create_or_from_strings			(SplitResult *pieces);
+Node * create_semicolon_from_strings	(SplitResult *pieces);
 Node * create_executable_from_string	(SplitResult *pieces);
 
 PriorityMapEntry priority_map[] = {
         {
+                // And
                 .separator_regex 	= "&&",
                 .handler 			= create_and_from_strings,
                 .single_split       = FALSE
-        },{ // Or operator
+        },
+        {
+                // Or operator
                 .separator_regex	= "\\|\\|",
                 .handler 			= create_or_from_strings,
                 .single_split       = FALSE
-        }, { // Pipe operator
+        },
+        {
+                // Pipe operator
                 .separator_regex	= "[^|]\\|[^|]",
                 .handler 			= create_pipe_from_strings,
                 .single_split       = FALSE
-        }, { // Executable
+        },
+        {
+                // Semicolon
+                .separator_regex    = ";",
+                .handler            = create_semicolon_from_strings,
+                .single_split       = FALSE
+        },
+        {
+                // Executable
                 .separator_regex    = "$",
                 .handler            = create_executable_from_string,
                 .single_split       = TRUE
@@ -410,7 +424,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
 
     argv[arguments_count] = NULL;
 
-    Node *node = new_executable_node(argv[0]);
+    Node *node = create_executable_node(argv[0]);
     node->value.executable.argv = argv;
     node->value.executable.argc = arguments_count - joined_arguments;
 
@@ -419,7 +433,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
 
 
 Node * create_pipe_from_strings (SplitResult *pieces) {
-    Node *node = new_node();
+    Node *node = create_node();
     node->type = PipeNode_T;
     OperandsNode *pipe = &node->value.operands;
     pipe->count = pieces->count;
@@ -434,7 +448,7 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
 }
 
 Node * create_operands_from_string (SplitResult *pieces, NodeType type) {
-    Node *node = new_node();
+    Node *node = create_node();
     node->type = type;
     OperandsNode *andNode = &node->value.operands;
     andNode->count = pieces->count;
@@ -455,4 +469,9 @@ Node * create_and_from_strings (SplitResult *pieces) {
 
 Node * create_or_from_strings (SplitResult *pieces) {
     return create_operands_from_string(pieces, OrNode_T);
+}
+
+
+Node *create_semicolon_from_strings(SplitResult *pieces) {
+    return create_operands_from_string(pieces, SemicolonNode_T);
 }

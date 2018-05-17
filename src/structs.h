@@ -7,7 +7,8 @@ typedef enum NodeType {
     PipeNode_T,
     ExecutableNode_T,
     AndNode_T,
-    OrNode_T
+    OrNode_T,
+    SemicolonNode_T
 } NodeType;
 
 typedef struct Node Node;
@@ -90,8 +91,9 @@ struct Node {
 
 
 
-Node *new_node();
-Node *new_executable_node(const char* path);
+Node *create_node();
+Node *create_executable_node(const char *path);
+Node *create_executable_node_single_arg(const char *path);
 Stream *        wrap_pipe_into_stream   (PipeStream *pipe_stream, int direction);
 Stream **       wrap_stream_into_array  (Stream *stream);
 

@@ -45,8 +45,8 @@ void should_wire_a_single_node_tree_to_std() {
 }
 
 void should_wire_a_pipe() {
-    Node *ls = new_executable_node("ls");
-    Node *wc = new_executable_node("wc");
+    Node *ls = create_executable_node("ls");
+    Node *wc = create_executable_node("wc");
     Node *nodes[2] = {ls, wc};
     Node pipe = {
             .type = PipeNode_T,
@@ -69,9 +69,9 @@ void should_wire_a_pipe() {
 }
 
 void should_wire_two_pipes () {
-    Node *ls = new_executable_node("ls");
-    Node *wc1 = new_executable_node("wc");
-    Node *wc2 = new_executable_node("wc");
+    Node *ls = create_executable_node("ls");
+    Node *wc1 = create_executable_node("wc");
+    Node *wc2 = create_executable_node("wc");
     Node *nodes[3] = {ls, wc1, wc2};
     Node pipe = {
             .type = PipeNode_T,
@@ -95,8 +95,8 @@ void should_wire_two_pipes () {
 }
 
 void should_wire_operands () {
-    Node *true = new_executable_node("true");
-    Node *false = new_executable_node("false");
+    Node *true = create_executable_node("true");
+    Node *false = create_executable_node("false");
     Node *nodes[2] = {true, false};
     Node and = {
             .type = AndNode_T,

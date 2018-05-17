@@ -1,7 +1,7 @@
 #include "structs.h"
 #include "common.h"
 
-Node *new_node(){
+Node *create_node(){
     // TODO: Check all initializations, also on tests
     Node *node = malloc(sizeof(Node));
     node->std_in        = NULL;
@@ -9,10 +9,20 @@ Node *new_node(){
     return node;
 }
 
-Node *new_executable_node(const char* path) {
-    Node *node = new_node();
+Node *create_executable_node(const char *path) {
+    Node *node = create_node();
     node->type = ExecutableNode_T;
     node->value.executable.path = strdup(path);
+    return node;
+}
+
+Node *create_executable_node_single_arg(const char *path) {
+    Node *node = create_executable_node(path);
+    ExecutableNode *value = &node->value.executable;
+    value->argc = 1;
+    value->argv = malloc(2 * sizeof(char*));
+    value->argv[0] = strdup(path);
+    value->argv[1] = NULL;
     return node;
 }
 
