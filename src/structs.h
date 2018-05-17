@@ -22,7 +22,6 @@ typedef struct ExecutableNode {
 } ExecutableNode;
 
 typedef struct OperandsNode {
-    //TODO: rename everywhere with operands_count
     int 	count;
     Node 	**nodes;
     Stream  *concatenator;

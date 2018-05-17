@@ -2,11 +2,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <regex.h>
+#include <_regex.h>
 #include "common.h"
 #include "parse.h"
 #include "structs.h"
-
-const char * remove_brackets_if_alone(const char *str);
 
 // keep together substrings split by the same operator
 typedef struct SplitResult {
@@ -14,7 +13,8 @@ typedef struct SplitResult {
     const char  **sub_strings;
 } SplitResult;
 
-SplitResult * split_string_for_operator (const char *string, regex_t *separator);
+SplitResult * create_split_for_operator(const char *string, regex_t *separator);
+void destroy_split (SplitResult *to_destroy);
 
 // contains the substring of a command and, if any, the file names to which redirect the input/output
 typedef struct RedirectSplit {
@@ -24,15 +24,8 @@ typedef struct RedirectSplit {
     Stream      *in, *out;
 } RedirectSplit;
 
-RedirectSplit *new_redirect_split () {
-    RedirectSplit *split = malloc(sizeof(RedirectSplit));;
-    split->in = split->out = NULL;
-    return split;
-}
 
-
-RedirectSplit * split_redirect_if_last_right(const char *str);
-
+RedirectSplit * create_split_command_from_redirect(const char *str);
 void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_redirects);
 
 
@@ -44,6 +37,8 @@ typedef struct PriorityMapEntry {
     char 		*separator_regex;
 
     regex_t*    compiled_separator;
+
+    BOOL        single_split;
 
     // function to construct a node from the split string
     Node *(*handler) (SplitResult*);
@@ -59,13 +54,20 @@ Node * create_executable_from_string	(SplitResult *pieces);
 PriorityMapEntry priority_map[] = {
         {
                 .separator_regex 	= "&&",
-                .handler 			= create_and_from_strings
-        }, { // Or operator
+                .handler 			= create_and_from_strings,
+                .single_split       = FALSE
+        },{ // Or operator
                 .separator_regex	= "\\|\\|",
-                .handler 			= create_or_from_strings
+                .handler 			= create_or_from_strings,
+                .single_split       = FALSE
         }, { // Pipe operator
                 .separator_regex	= "[^|]\\|[^|]",
-                .handler 			= create_pipe_from_strings
+                .handler 			= create_pipe_from_strings,
+                .single_split       = FALSE
+        }, { // Executable
+                .separator_regex    = "$",
+                .handler            = create_executable_from_string,
+                .single_split       = TRUE
         }
 };
 const int operators_count = sizeof(priority_map) / sizeof(PriorityMapEntry);
@@ -110,60 +112,33 @@ regex_t * compile_regex (const char *regex) {
     }
     return compiled;
 }
-
+const char * remove_brackets_if_alone(const char *str);
 
 
 Node * create_tree_from_string (const char *raw_string) {
     initialize_parser();
 
-    RedirectSplit *string_and_redirects = split_redirect_if_last_right(raw_string);
-    const char *string                   = remove_brackets_if_alone(string_and_redirects->command);
+    RedirectSplit   *string_and_redirects   = create_split_command_from_redirect(raw_string);
+    const char      *string                 = remove_brackets_if_alone(string_and_redirects->command);
 
     int i;
     Node *parsed = NULL;
-    for (i = 0; i < operators_count; i++) {
+    for (i = 0; i < operators_count && parsed == NULL; i++) {
         PriorityMapEntry *entry = &priority_map[i];
-        SplitResult *pieces     = split_string_for_operator(string, entry->compiled_separator);
+        SplitResult *pieces     = create_split_for_operator(string, entry->compiled_separator);
 
-        if (pieces != NULL) {
+        if (entry->single_split || pieces->count > 1) {
             parsed = entry->handler(pieces);
-            break;
         }
-    }
 
-    if (parsed == NULL) {
-        SplitResult fake_split = {
-                .count = 1,
-                .sub_strings = &string
-        };
-        parsed = create_executable_from_string(&fake_split);
+        destroy_split(pieces);
     }
 
     if (string_and_redirects->has_redirects) {
         redirect_streams_of_node_to_files(parsed, string_and_redirects);
     }
 
-
     return parsed;
-}
-
-
-const char * remove_brackets_if_alone(const char *str) {
-    // TODO: Compile only the first time
-    char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
-    regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
-
-    regmatch_t matches[2];
-    int res = regexec(regex, str, 2, matches, 0);
-    regmatch_t match = matches[1];
-
-    if (res != REG_NOMATCH) {
-        const char *start = str + match.rm_so;
-        size_t to_copy = (size_t) (match.rm_eo - match.rm_so);
-        return strndup(start, to_copy);
-    }
-
-    return strdup(str);
 }
 
 const char *create_string_from_match(const char *str, regmatch_t *match) {
@@ -173,11 +148,31 @@ const char *create_string_from_match(const char *str, regmatch_t *match) {
     return strndup(start, to_copy);
 }
 
+const char * remove_brackets_if_alone(const char *str) {
+    char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
+    const int COMMAND_GROUP = 1;
+
+    regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
+
+    regmatch_t matches[2];
+    int res = regexec(regex, str, 2, matches, 0);
+    regmatch_t *match = &matches[COMMAND_GROUP];
+
+    if (res != REG_NOMATCH) {
+        return create_string_from_match(str, match);
+    }
+
+    return strdup(str);
+}
+
+
+
 
 RedirectSplit * create_redirect_with_command_from_string (const char *str) {
-    RedirectSplit *split = new_redirect_split();
+    RedirectSplit *split1 = malloc(sizeof(RedirectSplit));;
+    split1->in = split1->out = NULL;
+    RedirectSplit *split = split1;
 
-    // TODO: Compile only the first time
     char *const MATCH_REDIRECT_AND_FILE_NAME_IF_LAST = "((>>|>|<) *([a-zA-Z\\.]*))+$";
     regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
 
@@ -188,9 +183,9 @@ RedirectSplit * create_redirect_with_command_from_string (const char *str) {
         const char *end = str + match.rm_so;
         size_t to_copy = end - start;
 
+        split->command = strndup(start, to_copy);
 
         split->has_redirects = TRUE;
-        split->command = strndup(start, to_copy);
     } else {
         split->has_redirects = FALSE;
         split->command = strdup(str);
@@ -200,7 +195,6 @@ RedirectSplit * create_redirect_with_command_from_string (const char *str) {
 }
 
 void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const char *string) {
-    // TODO: Compile only the first time
     char *const MATCH_REDIRECT_AND_FILE_NAME_IF_LAST = "((>>|>|<) *([a-zA-Z\\.]*))+$";
     regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
 
@@ -233,7 +227,7 @@ void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const cha
 }
 
 
-RedirectSplit * split_redirect_if_last_right(const char *str) {
+RedirectSplit * create_split_command_from_redirect(const char *str) {
     RedirectSplit *split = create_redirect_with_command_from_string(str);
 
     if (split->has_redirects) {
@@ -275,7 +269,7 @@ int count_occurrences_of_regex (const char *string, regex_t *separator) {
     return count;
 }
 
-const char * obfuscate_parentesis_in_string (const char *str) {
+const char * obfuscate_brackets_in_string(const char *str) {
     size_t len = strlen(str);
     char *obs = malloc(len * sizeof(char));
 
@@ -295,19 +289,14 @@ const char * obfuscate_parentesis_in_string (const char *str) {
     return obs;
 }
 
-SplitResult *split_string_for_operator (const char *string, regex_t *separator) {
-    const char *obfuscated_string = obfuscate_parentesis_in_string(string);
-
+SplitResult *create_split_for_operator(const char *string, regex_t *separator) {
+    const char *obfuscated_string = obfuscate_brackets_in_string(string);
     int operators_count = count_occurrences_of_regex(obfuscated_string, separator);
-    if (operators_count <= 0) {
-        free((void *) obfuscated_string);
-        return NULL;
-    }
 
     int pieces = operators_count + 1;
     SplitResult *split = malloc(sizeof(SplitResult));
     split->count = pieces;
-    split->sub_strings = malloc(pieces * sizeof(char*));
+    split->sub_strings = malloc(pieces * sizeof(char *));
 
 
     int i;
@@ -318,12 +307,12 @@ SplitResult *split_string_for_operator (const char *string, regex_t *separator) 
         int res = regexec(separator, obs_str, 1, &match, 0);
 
         const char *start = str;
-        int to_copy;
+        size_t to_copy;
 
         if (res == REG_NOMATCH) {
             to_copy = strlen(obs_str);
         } else {
-            to_copy = match.rm_so;
+            to_copy = (size_t) match.rm_so;
         }
 
         split->sub_strings[i] = strndup(start, to_copy);
@@ -332,8 +321,19 @@ SplitResult *split_string_for_operator (const char *string, regex_t *separator) 
         str += match.rm_eo;
     }
 
+
     free((void *) obfuscated_string);
     return split;
+}
+
+void destroy_split (SplitResult *to_destroy) {
+    int i;
+    for (i = 0; i < to_destroy->count; i++) {
+        free((void *) to_destroy->sub_strings[i]);
+    }
+
+    free(to_destroy->sub_strings);
+    free(to_destroy);
 }
 
 char *clear_argument (const char *to_clear) {
@@ -341,7 +341,6 @@ char *clear_argument (const char *to_clear) {
         return strdup(to_clear);
     }
 
-    printf("Pulisco: %s\n", to_clear);
     const char *CLEAR_ARGUMENTS = "([^\\\\]+)";
 
     regex_t *regex = compile_regex(CLEAR_ARGUMENTS);
@@ -352,14 +351,10 @@ char *clear_argument (const char *to_clear) {
     while (regexec(regex, to_clear, 1, &match, 0) != REG_NOMATCH) {
         const char *start = to_clear + match.rm_so;
         const char *end = to_clear + match.rm_eo;
-        printf("con %s\n", strndup(start, end - start));
         strncat(res, start, end-start);
         to_clear += match.rm_eo;
 
     }
-
-    printf("Pilita: %s\n", res);
-
 
     return res;
 }
@@ -375,7 +370,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
 
     int i;
     const char *last_arg_end = NULL;
-    BOOL last_arg_was_quotes = FALSE;
+    BOOL last_arg_was_quoted = FALSE;
     int joined_arguments = 0;
     for (i = 0; i < arguments_count; i++) {
         regmatch_t matches[6];
@@ -398,7 +393,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
         const char *start = string + match_to_use->rm_so;
         const char *end = string + match_to_use->rm_eo;
 
-        if (arg_is_quoted && last_arg_was_quotes && (start - 2) == last_arg_end) {
+        if (arg_is_quoted && last_arg_was_quoted && (start - 2) == last_arg_end) {
             i--;
             char *temp = strndup(start, (end - start));
             argv[i] = strcat(argv[i], clear_argument(temp));
@@ -408,7 +403,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
         }
 
         last_arg_end = end;
-        last_arg_was_quotes = arg_is_quoted;
+        last_arg_was_quoted = arg_is_quoted;
 
         string = string + matches[0].rm_eo;
     }

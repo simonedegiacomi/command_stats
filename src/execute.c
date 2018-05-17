@@ -156,6 +156,7 @@ void execute_pipe(Node *pipe_node) {
     }
 
     // For this to work it mustn't exist a pipe with a pipe (in the tree)
+    // TODO: Flat tree or edit this method to handle all running processes?
     wait_children_and_collect_data(operands->nodes, operands_count);
 }
 
