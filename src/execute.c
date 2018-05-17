@@ -7,8 +7,11 @@ void execute_pipe(Node *pipe_node);
 void execute_operands(Node *node);
 
 void run_execute_executable_child (Node *node);
+<<<<<<< HEAD
 void wait_child_and_collect_data (Node *executed_by_child);
 void wait_children_and_collect_data (Node *executed_by_children[], int children);
+=======
+>>>>>>> 215239d1e8865b74dbe42258792fe574add2e73e
 
 void init_streams_before_exec_if_needed(Node *node);
 void init_stream_before_exec_if_needed(Stream *to_init, int direction);
@@ -196,6 +199,8 @@ void wait_children_and_collect_data (Node *executed_by_children[], int children)
 void add_result_to_node (Node *node, int exit_code, struct rusage *statistics) {
     ExecutionResult *res = malloc(sizeof(ExecutionResult));
     res->exit_code = exit_code;
+
+
     node->result = res;
 }
 
