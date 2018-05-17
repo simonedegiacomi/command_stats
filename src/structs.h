@@ -64,15 +64,11 @@ typedef struct Stream {
 
 
 typedef struct ExecutionResult {
-    int         exit_code;
-    struct      timeval user_cpu_time_used; 
-    struct      timeval system_cpu_time_used;
-    long        maximum_resident_set_size;
-    long        block_imput_operation;
-    long        block_output_operation;       
-    long        voluntary_context_switches;       
-    long        involuntary_context_switches;
-
+    int     exit_code;
+    struct  timeval user_cpu_time_used; 
+    struct  timeval system_cpu_time_used;
+    long    clock_time;
+    long    maximum_resident_set_size;
 } ExecutionResult;
 
 struct Node {
