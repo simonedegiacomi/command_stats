@@ -31,16 +31,18 @@ void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_r
 
 
 
-// entry for the array that describes the priority of the operands.
+// Entry for the array that describes the priority of the operands.
 typedef struct PriorityMapEntry {
 
+    // Regex that matches the separator of the operand
     char 		*separator_regex;
 
     regex_t*    compiled_separator;
 
+    // True if the handler can be called even if the SplitResult contains only a string
     BOOL        single_split;
 
-    // function to construct a node from the split string
+    // Function to construct a node from the split string
     Node *(*handler) (SplitResult*);
 } PriorityMapEntry;
 
@@ -52,7 +54,7 @@ Node * create_or_from_strings			(SplitResult *pieces);
 Node * create_semicolon_from_strings	(SplitResult *pieces);
 Node * create_executable_from_string	(SplitResult *pieces);
 
-PriorityMapEntry priority_map[] = {
+static PriorityMapEntry priority_map[] = {
         {
                 // And
                 .separator_regex 	= "&&",
@@ -84,10 +86,10 @@ PriorityMapEntry priority_map[] = {
                 .single_split       = TRUE
         }
 };
-const int operators_count = sizeof(priority_map) / sizeof(PriorityMapEntry);
+static const int operators_count = sizeof(priority_map) / sizeof(PriorityMapEntry);
 
 
-BOOL parser_initialized = FALSE;
+static BOOL parser_initialized = FALSE;
 
 void initialize_regexes();
 regex_t * compile_regex (const char *regex);

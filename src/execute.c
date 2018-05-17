@@ -35,7 +35,8 @@ void execute_internal (Node* node, BOOL sync) {
 			break;
 
 		case AndNode_T:
-		case OrNode_T:
+        case OrNode_T:
+            // TODO: Handle Semicolon
 			execute_operands(node);
 			break;
 
@@ -181,6 +182,8 @@ void wait_children_and_collect_data (Node *executed_by_children[], int children)
         for (i = 0; i < children && !found; i++) {
             if (executed_by_children[i]->pid == exited_child) {
                 found = TRUE;
+                Node *node = executed_by_children[i];
+                add_result_to_node(node, exit_code, statistics);
             }
         }
         
@@ -188,6 +191,12 @@ void wait_children_and_collect_data (Node *executed_by_children[], int children)
             to_wait--;
         }
     }
+}
+
+void add_result_to_node (Node *node, int exit_code, struct rusage *statistics) {
+    ExecutionResult *res = malloc(sizeof(ExecutionResult));
+    res->exit_code = exit_code;
+    node->result = res;
 }
 
 
