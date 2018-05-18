@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <regex.h>
-#include <_regex.h>
 #include "common.h"
 #include "parse.h"
 #include "structs.h"
@@ -215,7 +214,8 @@ void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const cha
     regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
 
     regmatch_t matches[4];
-    for (const char *str = string; regexec(regex, str, 4, matches, 0) != REG_NOMATCH; str += matches[3].rm_eo) {
+    const char *str;
+    for (str = string; regexec(regex, str, 4, matches, 0) != REG_NOMATCH; str += matches[3].rm_eo) {
         const char *redirect_type   = create_string_from_match(str, &matches[2]);
         const char *file_name       = create_string_from_match(str, &matches[3]);
 
@@ -394,6 +394,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
         int res = regexec(regex, string, 6, matches, 0);
         if (res == REG_NOMATCH) {
             fprintf(stderr, "[PARSER] errore\n");
+            exit(-1);
         }
 
 

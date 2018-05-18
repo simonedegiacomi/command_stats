@@ -42,3 +42,30 @@ Stream ** wrap_stream_into_array (Stream *stream) {
     return streams;
 }
 
+int count_executables_in_tree (Node *node) {
+    if (node->type == ExecutableNode_T) {
+        return 1;
+    }
+
+    int sum = 0;
+    int i;
+    OperandsNode *operands = &node->value.operands;
+    for (i = 0; i < operands->count; i++) {
+        sum += count_executables_in_tree(operands->nodes[i]);
+    }
+    return sum;
+}
+
+long get_current_time () {
+    struct timespec res;
+    clock_gettime(CLOCK_REALTIME, &res);
+    return res.tv_sec;
+}
+
+ExecutionResult *create_execution_result() {
+    ExecutionResult *res = malloc(sizeof(ExecutionResult));
+
+    res->start_time = get_current_time();
+
+    return res;
+}

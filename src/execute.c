@@ -1,46 +1,50 @@
+#include <signal.h>
 #include "execute.h"
 #include "structs.h"
 
-void execute_internal (Node* node, BOOL sync);
-void execute_executable(Node *node);
-void execute_pipe(Node *pipe_node);
-void execute_operands(Node *node);
+typedef enum StreamDirection {
+    TO_EXECUTABLE,
+    FROM_EXECUTABLE
+} StreamDirection;
+
+void execute_async(Node *node);
+void execute_executable_async(Node *node);
+void execute_pipe_async(Node *pipe_node);
+void execute_first_operand_async(Node *node);
+
+void manage_running_nodes_and_collect_data (Node *tree);
+BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father);
 
 void run_execute_executable_child (Node *node);
-<<<<<<< HEAD
-void wait_child_and_collect_data (Node *executed_by_child);
-void wait_children_and_collect_data (Node *executed_by_children[], int children);
-=======
->>>>>>> 215239d1e8865b74dbe42258792fe574add2e73e
+void run_execute_executable_father(Node *node, int fork_result);
 
-void init_streams_before_exec_if_needed(Node *node);
-void init_stream_before_exec_if_needed(Stream *to_init, int direction);
-void init_streams_before_fork_if_needed(Node *node);
-void init_stream_before_fork_if_needed(Stream *to_init, int direction);
+
+void init_streams_before_fork(Node *node);
+void init_stream_before_fork(Stream *to_init, StreamDirection direction);
+void init_streams_before_exec(Node *node);
+void init_stream_before_exec(Stream *to_init, StreamDirection direction);
 
 
 void execute (Node *node) {
-    execute_internal(node, TRUE);
+    execute_async(node);
+    manage_running_nodes_and_collect_data(node);
 }
 
-void execute_internal (Node* node, BOOL sync) {
+
+void execute_async(Node *node) {
 	switch (node->type) {
 		case ExecutableNode_T:
-			execute_executable(node);
-
-            if (sync) {
-                wait_child_and_collect_data(node);
-            }
+            execute_executable_async(node);
 			break;
 
-		case PipeNode_T:
-			execute_pipe(node);
+        case PipeNode_T:
+			execute_pipe_async(node);
 			break;
 
 		case AndNode_T:
         case OrNode_T:
-            // TODO: Handle Semicolon
-			execute_operands(node);
+        case SemicolonNode_T:
+            execute_first_operand_async(node);
 			break;
 
 		default:
@@ -50,61 +54,112 @@ void execute_internal (Node* node, BOOL sync) {
 
 }
 
-void execute_executable(Node *node) {
-    init_streams_before_fork_if_needed(node);
+void execute_executable_async(Node *node) {
+    init_streams_before_fork(node);
     int fork_result = fork();
 
     if (fork_result < 0) {
         fprintf(stderr, "[EXECUTE] can't fork to execute executable\n");
         node->result = NULL;
     } else if (fork_result > 0) {
-        node->pid = fork_result;
+        run_execute_executable_father(node, fork_result);
     } else {
         run_execute_executable_child(node);
     }
 }
 
+void run_execute_executable_father(Node *node, int fork_result) {
+    // TODO: Explain why this is necessary
+    if (node->std_in->type == PipeStream_T) {
+        close(node->std_in->file_descriptor)
+    }
+    if (node->std_out->type == PipeStream_T) {
+        close(node->std_out->file_descriptor)
+    }
+
+    node->pid = fork_result;
+    node->result = create_execution_result();
+}
+
+void init_streams_before_fork(Node *node) {
+    init_stream_before_fork(node->std_in, TO_EXECUTABLE);
+    init_stream_before_fork(node->std_out, FROM_EXECUTABLE);
+}
+
+void init_stream_before_fork(Stream *to_init, StreamDirection direction){
+    PipeStream *pipe_stream;
+    ConcatenatedStream * concat_stream;
+
+    switch (to_init->type) {
+        case PipeStream_T:
+            pipe_stream = to_init->options.pipe;
+            if (!pipe_stream->initialized) {
+                // This function is still called from the father, so
+                // TODO: Explain why it works
+                pipe(pipe_stream->descriptors);
+                pipe_stream->initialized = TRUE;
+            }
+
+            if (direction == TO_EXECUTABLE) {
+                to_init->file_descriptor = pipe_stream->descriptors[READ_FROM_PIPE];
+            } else if (direction == FROM_EXECUTABLE) {
+                to_init->file_descriptor = pipe_stream->descriptors[WRITE_INTO_PIPE];
+            }
+            break;
+
+        case ConcatenatedStream_T:
+            concat_stream = to_init->options.concat;
+            break;
+
+        default:
+            if (!concat_stream->initialized) {
+                // TODO: Launch child to concatenate streams
+            }
+            break;
+    }
+}
+
+
 void run_execute_executable_child (Node *node) {
-    init_streams_before_exec_if_needed(node);
+    init_streams_before_exec(node);
 
     int std_in  = node->std_in->file_descriptor;
     int std_out = node->std_out->file_descriptor;
 
-    printf("%s %d %d\n", node->value.executable.path, std_in, std_out);
-
     if (std_in != STDIN_FILENO) {
-        printf("change std in\n");
         close(STDIN_FILENO);
         dup2(std_in, STDIN_FILENO);
     }
     if (std_out != STDOUT_FILENO) {
-        printf("change std out\n");
         close(STDOUT_FILENO);
         dup2(std_out, STDOUT_FILENO);
     }
 
     execvp(node->value.executable.path, node->value.executable.argv);
-    fprintf(stderr, "[EXECUTE] execvp failed\n");
+
+    // If we're here, execvp is failed, report the error to the father
+    kill(getppid(), SIGCHLD);
+    exit(-1);
 }
 
 
-
-void init_streams_before_exec_if_needed(Node *node) {
-    init_stream_before_exec_if_needed(node->std_in, O_RDONLY);
-    init_stream_before_exec_if_needed(node->std_out, O_WRONLY);
-
+void init_streams_before_exec(Node *node) {
+    init_stream_before_exec(node->std_in, TO_EXECUTABLE);
+    init_stream_before_exec(node->std_out, FROM_EXECUTABLE);
 }
 
-void init_stream_before_exec_if_needed(Stream *to_init, int direction) {
+void init_stream_before_exec(Stream *to_init, StreamDirection direction) {
     PipeStream *pipe_stream;
 
     switch (to_init->type) {
         case FileStream_T:
+            // TODO: Check if the file is closed automatically
             to_init->file_descriptor = open(to_init->options.file.name, to_init->options.file.open_flag);
             break;
+
         case PipeStream_T:
             pipe_stream = to_init->options.pipe;
-            if (direction == O_RDONLY) {
+            if (direction == TO_EXECUTABLE) {
                 close(pipe_stream->descriptors[WRITE_INTO_PIPE]);
             } else {
                 close(pipe_stream->descriptors[READ_FROM_PIPE]);
@@ -115,130 +170,64 @@ void init_stream_before_exec_if_needed(Stream *to_init, int direction) {
     }
 }
 
-void init_streams_before_fork_if_needed(Node *node) {
-    init_stream_before_fork_if_needed(node->std_in, O_RDONLY);
-    init_stream_before_fork_if_needed(node->std_out, O_WRONLY);
-}
-void init_stream_before_fork_if_needed(Stream *to_init, int direction){
-    if (to_init->type == PipeStream_T) {
-        PipeStream *pipe_stream = to_init->options.pipe;
-        if (!pipe_stream->initialized) {
-            pipe(pipe_stream->descriptors);
-            pipe_stream->initialized = TRUE; // Is this thread safe?
-        }
 
-        if (direction == O_RDONLY) {
-            to_init->file_descriptor = pipe_stream->descriptors[READ_FROM_PIPE];
-        } else if (direction == O_WRONLY) {
-            to_init->file_descriptor = pipe_stream->descriptors[WRITE_INTO_PIPE];
-        }
-    }
-}
-
-
-
-void execute_pipe(Node *pipe_node) {
+void execute_pipe_async(Node *pipe_node) {
     OperandsNode *operands = &pipe_node->value.operands;
     int operands_count = operands->count;
 
     int i;
     for (i = 0; i < operands_count; i++) {
         Node *to_execute = operands->nodes[i];
-        execute_internal(to_execute, FALSE);
+        execute_async(to_execute);
     }
-
-
-
-    for (i = 0; i < operands_count; i++) {
-        Node *node = operands->nodes[i];
-        if (node->std_in->type == PipeStream_T) {
-            close(node->std_in->file_descriptor);
-        }
-        if (node->std_out->type == PipeStream_T) {
-            close(node->std_out->file_descriptor);
-        }
-    }
-
-    // For this to work it mustn't exist a pipe with a pipe (in the tree)
-    // TODO: Flat tree or edit this method to handle all running processes?
-    wait_children_and_collect_data(operands->nodes, operands_count);
 }
 
-void wait_child_and_collect_data(Node *executed_by_child) {
-    Node *nodes_of_children[] = { executed_by_child };
-    wait_children_and_collect_data(nodes_of_children, 1);
+
+
+
+void execute_first_operand_async(Node *node) {
+    OperandsNode operands = node->value.operands;
+    execute_async(operands[0]);
 }
 
-void wait_children_and_collect_data (Node *executed_by_children[], int children) {
-    int to_wait = children;
-    while (to_wait > 0) {
-        printf("to wait%d\n", to_wait);
+
+
+
+void manage_running_nodes_and_collect_data (Node *tree) {
+    while (1) {
         int exit_code;
         struct rusage statistics;
-        // TODO: option shouldn't be 0!, we need to listen only for exited child, not their signal!
-        pid_t exited_child = wait3(&exit_code, 0, &statistics);
+        int pid = wait3(&exit_code, 0, &statistics);
 
-        printf("Exited: %d\n", exited_child);
-        
-        int i;
-        BOOL found = FALSE;
-        for (i = 0; i < children && !found; i++) {
-            if (executed_by_children[i]->pid == exited_child) {
-                found = TRUE;
-                Node *node = executed_by_children[i];
-                add_result_to_node(node, exit_code, statistics);
-            }
-        }
-        
-        if (found) {
-            to_wait--;
-        }
+        Node *exited_node, exited_node_father;
+        BOOL found = find_node_in_tree_with_pid(tree, pid, &exited_node, &exited_node_father);
+
+        //TODO: Assignresults
+        // TODO: If operand, run next node
     }
 }
 
-void add_result_to_node (Node *node, int exit_code, struct rusage *statistics) {
-    ExecutionResult *res = malloc(sizeof(ExecutionResult));
-    res->exit_code = exit_code;
 
-
-    node->result = res;
-}
-
-
-void execute_operands(Node *node) {
-    int operands_count = node->value.operands.count;
+BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father) {
+    if (tree->type == ExecutableNode_T && tree->pid == pid) {
+        *result = tree;
+        return TRUE;
+    }
+    
     int i;
-    BOOL stop = FALSE;
-    for (i = 0; i < operands_count && !stop; i++) {
-        Node *operand = node->value.operands.nodes[i];
+    BOOL found = FALSE;
+    OperandsNode operands = tree->value.operands;
 
-        execute(operand);
-        ExecutionResult *res = operand->result;
-
-        switch (operand->type) {
-            case AndNode_T:
-                if (res == NULL || !WIFEXITED(res->exit_code)) {
-                    if (res != NULL) {
-                        node->result = malloc(sizeof(ExecutionResult));
-                        node->result->exit_code = res->exit_code;
-                    }
-                    stop = FALSE;
-                }
-                break;
-
-            case OrNode_T:
-                if (res != NULL && WIFEXITED(res->exit_code)) {
-                    node->result = malloc(sizeof(ExecutionResult));
-                    node->result->exit_code = res->exit_code;
-                    stop = TRUE;
-                }
-                break;
-
-            default:
-                // just execute all the nodes
-                break;
-        }
+    //TODO: this is executed multiple times!
+    *result_father = tree;
+    for (i = 0; i < operands.count && !found; i++) {
+        found = find_node_in_tree_with_pid(operands.nodes[i], pid, result, result_father);
     }
+    
+    if (!found) {
+        //TODO: this is executed multiple times!
+        *result_father = *result = NULL;
+    }
+    return found;
 }
-
 
