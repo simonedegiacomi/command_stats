@@ -22,4 +22,8 @@
 #define READ_FROM_PIPE 0
 
 
+
+long get_current_time ();
+
+
 #endif

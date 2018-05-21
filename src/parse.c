@@ -391,10 +391,11 @@ Node * create_executable_from_string (SplitResult *pieces) {
     for (i = 0; i < arguments_count; i++) {
         regmatch_t matches[6];
 
+
         int res = regexec(regex, string, 6, matches, 0);
         if (res == REG_NOMATCH) {
-            fprintf(stderr, "[PARSER] errore\n");
-            exit(-1);
+            fprintf(stderr, "[PARSER] ATTENZIONE, REGEXP VUOTA");
+            break;
         }
 
 

@@ -56,12 +56,6 @@ int count_executables_in_tree (Node *node) {
     return sum;
 }
 
-long get_current_time () {
-    struct timespec res;
-    clock_gettime(CLOCK_REALTIME, &res);
-    return res.tv_sec;
-}
-
 ExecutionResult *create_execution_result() {
     ExecutionResult *res = malloc(sizeof(ExecutionResult));
 

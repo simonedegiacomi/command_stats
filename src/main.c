@@ -7,12 +7,17 @@
 int main (int argc, char *argv[]) {
 	// TODO: Parse arguments
 
-	printf("[RUN] Running\n");
+	printf("[RUN] Started\n");
 
 	const char *input = argv[1];
 	Node *command_tree = create_tree_from_string(input);
+	printf("[RUN] Parsed!\n");
+
     wire(command_tree);
+	printf("[RUN] Wired!\n");
+
     execute(command_tree);
+	printf("[RUN] Executed!\n");
 
 	// TODO: Send results to deamon
 

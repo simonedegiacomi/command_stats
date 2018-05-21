@@ -14,6 +14,7 @@ void execute_first_operand_async(Node *node);
 
 void manage_running_nodes_and_collect_data (Node *tree);
 BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father);
+BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **result_father);
 
 void run_execute_executable_child (Node *node);
 void run_execute_executable_father(Node *node, int fork_result);
@@ -23,6 +24,10 @@ void init_streams_before_fork(Node *node);
 void init_stream_before_fork(Stream *to_init, StreamDirection direction);
 void init_streams_before_exec(Node *node);
 void init_stream_before_exec(Stream *to_init, StreamDirection direction);
+
+
+void assign_results (Node *node, int exit_code, struct rusage *statistic);
+Node * find_next_executable (Node *father, Node *executed_child);
 
 
 void execute (Node *node) {
@@ -71,10 +76,10 @@ void execute_executable_async(Node *node) {
 void run_execute_executable_father(Node *node, int fork_result) {
     // TODO: Explain why this is necessary
     if (node->std_in->type == PipeStream_T) {
-        close(node->std_in->file_descriptor)
+        close(node->std_in->file_descriptor);
     }
     if (node->std_out->type == PipeStream_T) {
-        close(node->std_out->file_descriptor)
+        close(node->std_out->file_descriptor);
     }
 
     node->pid = fork_result;
@@ -88,7 +93,7 @@ void init_streams_before_fork(Node *node) {
 
 void init_stream_before_fork(Stream *to_init, StreamDirection direction){
     PipeStream *pipe_stream;
-    ConcatenatedStream * concat_stream;
+    ConcatenatedStream *concat_stream;
 
     switch (to_init->type) {
         case PipeStream_T:
@@ -108,7 +113,7 @@ void init_stream_before_fork(Stream *to_init, StreamDirection direction){
             break;
 
         case ConcatenatedStream_T:
-            concat_stream = to_init->options.concat;
+            concat_stream = &to_init->options.concat;
             break;
 
         default:
@@ -187,47 +192,92 @@ void execute_pipe_async(Node *pipe_node) {
 
 void execute_first_operand_async(Node *node) {
     OperandsNode operands = node->value.operands;
-    execute_async(operands[0]);
+    execute_async(operands.nodes[0]);
 }
 
 
 
 
 void manage_running_nodes_and_collect_data (Node *tree) {
-    while (1) {
+    int to_wait = count_executables_in_tree(tree);
+    while (to_wait > 0) {
+        printf("to wait: %d\n", to_wait);
         int exit_code;
         struct rusage statistics;
         int pid = wait3(&exit_code, 0, &statistics);
 
-        Node *exited_node, exited_node_father;
+
+        Node *exited_node, *exited_node_father;
         BOOL found = find_node_in_tree_with_pid(tree, pid, &exited_node, &exited_node_father);
 
-        //TODO: Assignresults
-        // TODO: If operand, run next node
+        if (found) {
+            assign_results(exited_node, exit_code, &statistics);
+
+            if (exited_node_father != NULL && (exited_node_father->type == AndNode_T || exited_node_father->type == OrNode_T || exited_node_father->type == SemicolonNode_T)) {
+                Node *next = find_next_executable(exited_node_father, exited_node);
+
+                if (next != NULL) {
+                    execute_executable_async(next);
+                }
+            }
+
+            to_wait--;
+        }
     }
 }
 
+BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father){
+    *result_father = *result = NULL;
+    return find_node_in_tree_with_pid_r(tree, pid, result, result_father);
+}
 
-BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father) {
-    if (tree->type == ExecutableNode_T && tree->pid == pid) {
-        *result = tree;
-        return TRUE;
+BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **result_father) {
+    if (tree->type == ExecutableNode_T) {
+        if (tree->pid == pid) {
+            *result = tree;
+            return TRUE;
+        } else {
+            return FALSE;
+        }
     }
     
     int i;
     BOOL found = FALSE;
     OperandsNode operands = tree->value.operands;
 
-    //TODO: this is executed multiple times!
-    *result_father = tree;
     for (i = 0; i < operands.count && !found; i++) {
         found = find_node_in_tree_with_pid(operands.nodes[i], pid, result, result_father);
+        if (found && *result_father == NULL) {
+            *result_father = tree;
+        }
     }
     
-    if (!found) {
-        //TODO: this is executed multiple times!
-        *result_father = *result = NULL;
-    }
+
     return found;
+}
+
+
+void assign_results (Node *node, int exit_code, struct rusage *statistic) {
+    node->result->exit_code                 = exit_code;
+    node->result->end_time                  = get_current_time();
+    node->result->user_cpu_time_used        = statistic->ru_utime;
+    node->result->system_cpu_time_used      = statistic->ru_stime;
+    node->result->maximum_resident_set_size = statistic->ru_maxrss;
+
+    // TODO: Compute here clock time or add a method?
+}
+
+Node * find_next_executable (Node *father, Node *executed_child) {
+    int i;
+    int next_index = -1;
+    OperandsNode *operands = &father->value.operands;
+    int last_child = operands->count - 1;
+    for (i = 0; i < last_child && next_index < 0; i++) {
+        if (operands->nodes[i] == executed_child) {
+            next_index = i + 1;
+        }
+    }
+    
+    return next_index < 0 ? NULL : operands->nodes[next_index];
 }
 
