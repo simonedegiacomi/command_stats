@@ -196,8 +196,10 @@ void init_stream_before_exec(Stream *to_init, StreamDirection direction) {
     switch (to_init->type) {
         case FileStream_T:
             // TODO: Check if the file is closed automatically
+            // TODO: L'ultimo argomento, se siamo in lettura, è automaticamente ignorato?
             open_res = open(to_init->options.file.name, to_init->options.file.open_flag, 0666);
             if (open_res < 0) {
+                // TODO: Handle
                 printf("Errore apertura file: %d\n", errno);
             } else {
                 to_init->file_descriptor = open_res;
