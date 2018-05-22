@@ -4,6 +4,7 @@
 #include "parse.h"
 #include "execute.h"
 #include "wire.h"
+#include "collect_results.h"
 
 const char *DEFAULT_LOG_PATH		= "./log.txt";
 const char *DEFAULT_LOG_OPTIONS 	= "./log.txt";
@@ -13,10 +14,13 @@ typedef struct Preferences {
 	BOOL print_help;
 	const char *log_file_path;
 	const char *log_options;
+    FileFormat format;
 } Preferences;
 
 Preferences * parse_preferences(int argc, char *argv[]);
 void print_help();
+
+
 
 int main (int argc, char *argv[]) {
 	// Parse tool arguments
@@ -26,14 +30,17 @@ int main (int argc, char *argv[]) {
 		exit(0);
 	}
 
-	// TODO: Controlla se può scrivere il file di log, e lo crea se non esiste
+	//TODO: Controlla se può scrivere il file di log, e lo crea se non esiste
 	//TODO: Controllo se il logger è in esecuzione, altrimenti lo avvio
 
 	const char *command = argv[argc - 1];
 
+
 	// Parse command
-	initialize_parser();
-	Node *command_tree = create_tree_from_string(command);
+    initialize_parser();
+	const char *input = argv[1];
+	Node *command_tree = create_tree_from_string(input);
+
 
 	// Connect pipe and stream together
     wire(command_tree);
@@ -61,7 +68,12 @@ Preferences * parse_preferences(int argc, char *argv[]) {
 		} else if (strcmp(argv[i], "--options") == 0 && (i + 1) < argc) {
 			preferences->log_options 	= argv[++i];
 		} else if (strcmp(argv[i], "--format") == 0 && (i + 1) < argc) {
-
+            i++;
+            if (strcmp(argv[i], "TXT") == 0) {
+                preferences->format = TXT;
+            } else if (strcmp(argv[i], "CSV") == 0) {
+                preferences->format = CSV;
+            }
 		}
 	}
 

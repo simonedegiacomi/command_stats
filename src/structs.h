@@ -1,6 +1,7 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#include <sys/time.h>
 #include "common.h"
 
 typedef enum NodeType {
