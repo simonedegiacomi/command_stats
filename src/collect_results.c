@@ -19,7 +19,7 @@ BOOL check_option_is_in_options(const char *options[], char *option) {
 
 
 char ** parse_options(char *options_string) {
-	
+
 	const regex_t * compiled = compile_regex(",");
 	SplitResult *split = split_string(options_string, compiled);
 	
