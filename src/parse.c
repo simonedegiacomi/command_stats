@@ -157,6 +157,8 @@ const char * remove_brackets_if_alone(const char *str) {
         return create_string_from_match(str, match);
     }
 
+    regfree((regex_t *) regex);
+
     return strdup(str);
 }
 
