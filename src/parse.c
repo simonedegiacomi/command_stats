@@ -2,9 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <regex.h>
-#include "common.h"
 #include "parse.h"
-#include "structs.h"
 
 // keep together substrings split by the same operator
 typedef struct SplitResult {
@@ -225,10 +223,12 @@ void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const cha
                 split->out = malloc(sizeof(Stream));
             }
             stream = split->out;
-            stream->options.file.open_flag = O_WRONLY;
 
-            if (strlen(redirect_type) == 2) { // >>
-                stream->options.file.open_flag |= O_WRONLY;
+            stream->options.file.open_flag = O_CREAT | O_WRONLY;
+            if (strlen(redirect_type) == 1) { // >
+                stream->options.file.open_flag |= O_TRUNC;
+            } else { // >>
+                stream->options.file.open_flag = O_APPEND;
             }
         } else {
             if (split->in == NULL) {
@@ -394,7 +394,7 @@ Node * create_executable_from_string (SplitResult *pieces) {
 
         int res = regexec(regex, string, 6, matches, 0);
         if (res == REG_NOMATCH) {
-            fprintf(stderr, "[PARSER] ATTENZIONE, REGEXP VUOTA");
+            fprintf(stderr, "[PARSER] ATTENZIONE, REGEXP VUOTA\n");
             break;
         }
 

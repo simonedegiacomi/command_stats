@@ -1,10 +1,7 @@
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 #include <unistd.h>
 #include "wire.h"
-#include "common.h"
-#include "structs.h"
 
 
 void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out);
@@ -24,8 +21,12 @@ void wire(Node *tree) {
 }
 
 void wire_r(Node *tree, Stream *in, Stream *out) {
-    tree->std_in = in;
-    tree->std_out = out;
+    if (tree->std_in == NULL) {
+        tree->std_in = in;
+    }
+    if (tree->std_out == NULL) {
+        tree->std_out = out;
+    }
 
 
     switch (tree->type) {
@@ -38,6 +39,7 @@ void wire_r(Node *tree, Stream *in, Stream *out) {
 
         case AndNode_T:
         case OrNode_T:
+        case SemicolonNode_T:
             wire_operand_nodes(&tree->value.operands, in, out);
             break;
         default:

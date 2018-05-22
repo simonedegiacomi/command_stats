@@ -1,5 +1,8 @@
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 #include "structs.h"
-#include "common.h"
+
 
 Node *create_node(){
     // TODO: Check all initializations, also on tests

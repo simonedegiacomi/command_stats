@@ -1,8 +1,8 @@
 #ifndef PARSE_H
 #define PARSE_H
 
-
-
+#include <sys/time.h>
+#include <sys/fcntl.h>
 #include "structs.h"
 
 void initialize_parser();

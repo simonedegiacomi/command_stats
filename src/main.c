@@ -10,6 +10,7 @@ int main (int argc, char *argv[]) {
 	printf("[RUN] Started\n");
 
 	const char *input = argv[1];
+    initialize_parser();
 	Node *command_tree = create_tree_from_string(input);
 	printf("[RUN] Parsed!\n");
 
