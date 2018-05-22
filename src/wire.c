@@ -106,10 +106,10 @@ void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out) {
 void wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out) {
     operands->nodes[0]->std_in = in;
 
-    Stream *end = malloc(sizeof(Stream));
-    end->type = ConcatenatedStream_T;
-    end->options.concat.from_count = operands->count;
-    end->options.concat.from = malloc(operands->count * sizeof(Stream*));
+    Appender *appender = operands->appender = malloc(sizeof(Appender));
+    appender->from_count = operands->count;
+    appender->from = malloc(operands->count * sizeof(Stream*));
+    appender->to = out;
 
     int i;
     for (i = 0; i < operands->count; i++) {
@@ -123,11 +123,8 @@ void wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out) {
 
         wire_r(node, node_in, wrap_pipe_into_stream(node_to_concat, WRITE_INTO_PIPE));
 
-        end->options.concat.from[i] = wrap_pipe_into_stream(node_to_concat, READ_FROM_PIPE);
+        appender->from[i] = wrap_pipe_into_stream(node_to_concat, READ_FROM_PIPE);
     }
-
-    end->options.concat.to = out;
-    operands->concatenator = end;
 }
 
 

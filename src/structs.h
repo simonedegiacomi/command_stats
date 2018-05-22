@@ -13,6 +13,7 @@ typedef enum NodeType {
 
 typedef struct Node Node;
 typedef struct Stream Stream;
+typedef struct Appender Appender;
 
 
 typedef struct ExecutableNode {
@@ -23,16 +24,15 @@ typedef struct ExecutableNode {
 } ExecutableNode;
 
 typedef struct OperandsNode {
-    int 	count;
-    Node 	**nodes;
-    Stream  *concatenator;
+    int 	  count;
+    Node 	  **nodes;
+    Appender  *appender; // Used only in and, or, and semicolon
 } OperandsNode;
 
 typedef enum StreamType {
     FileDescriptorStream_T,
     FileStream_T,
-    PipeStream_T,
-    ConcatenatedStream_T
+    PipeStream_T
 } StreamType;
 
 typedef struct FileStream {
@@ -46,14 +46,12 @@ typedef struct PipeStream {
 } PipeStream;
 
 
-typedef struct ConcatenatedStream {
+typedef struct Appender {
     int from_count;
     Stream **from;
 
     Stream *to;
-
-    BOOL initialized;
-} ConcatenatedStream;
+} Appender;
 
 typedef struct Stream {
     StreamType type;
@@ -61,8 +59,6 @@ typedef struct Stream {
     union {
         FileStream 	        file;
         PipeStream          *pipe;
-        ConcatenatedStream  concat;
-
     } options;
 } Stream;
 
