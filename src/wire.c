@@ -15,8 +15,8 @@ PipeStream *create_pipe();
 void wire_r(Node *tree, Stream *in, Stream *out);
 
 void wire(Node *tree) {
-    Stream *std_out = create_std_stream(STDOUT_FILENO);
-    Stream *std_in = create_std_stream(STDIN_FILENO);
+    Stream *std_out = tree->std_out == NULL ? create_std_stream(STDOUT_FILENO) : tree->std_out;
+    Stream *std_in = tree->std_in == NULL ? create_std_stream(STDIN_FILENO) : tree->std_in;
     wire_r(tree, std_in, std_out);
 }
 
@@ -110,6 +110,10 @@ void wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out) {
     appender->from_count = operands->count;
     appender->from = malloc(operands->count * sizeof(Stream*));
     appender->to = out;
+
+    if (out->type == FileStream_T) {
+        printf("ok\n");
+    }
 
     int i;
     for (i = 0; i < operands->count; i++) {

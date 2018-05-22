@@ -102,5 +102,6 @@ Stream *        wrap_pipe_into_stream   (PipeStream *pipe_stream, int direction)
 Stream **       wrap_stream_into_array  (Stream *stream);
 
 int count_executables_in_tree (Node *node);
+int count_max_appender_file_descriptors(Node *node);
 
 #endif

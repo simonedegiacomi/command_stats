@@ -12,7 +12,8 @@ void check_file_stream_equals(Stream *expected, Stream *actual);
 
 void check_tree_equals(Node *expected, Node *actual) {
     my_assert(expected != NULL && actual != NULL, "null node");
-    my_assert(expected->type == actual->type, "different type");
+    my_assert(actual->type == expected->type, "different node type %d != %d", actual->type, expected->type);
+    printf("tipo giusto\n");
 
     switch (expected->type) {
         case ExecutableNode_T:

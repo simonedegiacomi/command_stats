@@ -215,7 +215,7 @@ void should_parse_redirect() {
             .options = {
                     .file = {
                             .name = "file.txt",
-                            .open_flag = O_WRONLY
+                            .open_flag = O_CREAT | O_TRUNC | O_WRONLY
                     }
             }
     };
@@ -234,6 +234,7 @@ void should_parse_redirect() {
 
     check_tree_equals(&expected, parsed);
 }
+
 
 void should_parse_and_inside_brackets_with_pipe() {
     char *command = "(ls && ls) > file.txt";
@@ -256,7 +257,7 @@ void should_parse_and_inside_brackets_with_pipe() {
             .options = {
                     .file = {
                             .name = "file.txt",
-                            .open_flag = O_WRONLY
+                            .open_flag = O_CREAT | O_TRUNC | O_WRONLY
                     }
             }
     };
@@ -314,6 +315,65 @@ void should_parse_escaped_quotation_marks() {
     check_tree_equals(&expected, parsed);
 }
 
+void should_parse_command_with_useless_brackets () {
+    char *command = "(echo \"a\" && echo \"b\") | (wc)";
+    printf("\n\nInizia ora\n");
+    Node *parsed = create_tree_from_string(command);
+
+    Node expected = {
+        .type = PipeNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = (Node*[]){
+                    &(Node){
+                        .type = AndNode_T,
+                        .value = {
+                            .operands = {
+                                .count = 2,
+                                .nodes = (Node*[]){
+                                    &(Node){
+                                        .type = ExecutableNode_T,
+                                        .value = {
+                                            .executable = {
+                                                .path = "echo",
+                                                .argc = 2,
+                                                .argv = (char*[]){"echo", "a"}
+                                            }
+                                        }
+                                    },
+                                    &(Node){
+                                        .type = ExecutableNode_T,
+                                        .value = {
+                                            .executable = {
+                                                .path = "echo",
+                                                .argc = 2,
+                                                .argv = (char*[]){"echo", "b"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    &(Node){
+                        .type = ExecutableNode_T,
+                        .value = {
+                            .executable = {
+                                .path = "wc",
+                                .argc = 1,
+                                .argv = (char*[]){"wc"}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    check_tree_equals(&expected, parsed);
+}
+
 void run_parser_test() {
     printf("[PARSER TEST] Start tests\n");
     should_parse_ls_with_argument();
@@ -330,6 +390,8 @@ void run_parser_test() {
 
     should_parse_near_quotation_marks_as_single_parameter();
     should_parse_escaped_quotation_marks();
+
+    should_parse_command_with_useless_brackets();
 
     printf("[PARSER TEST] All test passed\n");
 }

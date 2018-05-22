@@ -127,6 +127,7 @@ Node * create_tree_from_string (const char *raw_string) {
         SplitResult *pieces     = create_split_for_operator(string, entry->compiled_separator);
 
         if (entry->single_split || pieces->count > 1) {
+            printf("Delimiter: %s\n", entry->separator_regex);
             parsed = entry->handler(pieces);
         }
 
@@ -142,13 +143,14 @@ Node * create_tree_from_string (const char *raw_string) {
 
 
 const char * remove_brackets_if_alone(const char *str) {
-    char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
+    //char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
+    char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\(((\\\\\\(|[^\\(\\)]|\\\\\\))*)\\)[ ]*$";
     const int COMMAND_GROUP = 1;
 
     const regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
 
-    regmatch_t matches[2];
-    int res = regexec(regex, str, 2, matches, 0);
+    regmatch_t matches[3];
+    int res = regexec(regex, str, 3, matches, 0);
     regmatch_t *match = &matches[COMMAND_GROUP];
 
     if (res != REG_NOMATCH) {
@@ -208,7 +210,7 @@ void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const cha
             if (strlen(redirect_type) == 1) { // >
                 stream->options.file.open_flag |= O_TRUNC;
             } else { // >>
-                stream->options.file.open_flag = O_APPEND;
+                stream->options.file.open_flag |= O_APPEND;
             }
         } else {
             if (split->in == NULL) {
@@ -245,7 +247,7 @@ void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_r
 
 const char * obfuscate_brackets_in_string(const char *str) {
     size_t len = strlen(str);
-    char *obs = malloc(len * sizeof(char));
+    char *obs = strdup(str);
 
     int i;
     int parentesis = 0;
@@ -258,7 +260,6 @@ const char * obfuscate_brackets_in_string(const char *str) {
             parentesis--;
         }
     }
-    obs[len] = '\0';
 
     return obs;
 }

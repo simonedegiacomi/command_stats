@@ -3,6 +3,7 @@
 #include "my_assert.h"
 #include "../src/wire.h"
 #include "../src/common.h"
+#include "../src/structs.h"
 
 
 int pipe(int fds[]) {
@@ -115,10 +116,10 @@ void should_wire_operands () {
     assert_std_stream(false->std_in, STDIN_FILENO);
     assert_std_stream(and.std_out, STDOUT_FILENO);
 
-    Stream *concat = and.value.operands.appender;
-    my_assert(concat->options.concat.from_count == and.value.operands.count, "%d != %d", concat->options.concat.from_count, and.value.operands.count);
-    assert_pipe_connected(true->std_out, concat->options.concat.from[0]);
-    assert_pipe_connected(false->std_out, concat->options.concat.from[1]);
+    Appender *concat = and.value.operands.appender;
+    my_assert(concat->from_count == and.value.operands.count, "%d != %d", concat->from_count, and.value.operands.count);
+    assert_pipe_connected(true->std_out, concat->from[0]);
+    assert_pipe_connected(false->std_out, concat->from[1]);
 }
 
 void run_wire_tests() {

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/errno.h>
+#include <dirent.h>
 #include "execute.h"
 #include "structs.h"
 
@@ -30,9 +31,9 @@ void open_pipes_if_needed(Node *node);
 void open_pipe_if_needed(Stream *to_init, StreamDirection direction);
 void open_redirects_files_if_needed(Node *node);
 void open_redirect_file_if_needed(Stream *to_init);
-void init_appender(Appender *to_init);
+void init_appender(Appender *appender);
 void run_appender_main (Appender *appender);
-void close_not_used_file_descriptors_except(int std_in, int std_out);
+void close_file_descriptors_except(int std_in, int std_out);
 
 
 void assign_results (Node *node, int exit_code, struct rusage *statistic);
@@ -134,7 +135,7 @@ void run_execute_executable_child (Node *node) {
         dup2(std_out, STDOUT_FILENO);
     }
 
-    close_not_used_file_descriptors_except(std_in, std_out);
+    close_file_descriptors_except(STDIN_FILENO, STDOUT_FILENO);
 
     execvp(node->value.executable.path, node->value.executable.argv);
 
@@ -151,6 +152,7 @@ void open_redirects_files_if_needed(Node *node) {
 
 void open_redirect_file_if_needed(Stream *to_init) {
     if (to_init->type == FileStream_T) {
+        printf("REDIRECT FILE\n");
         int open_res = open(to_init->options.file.name, to_init->options.file.open_flag, 0666);
         if (open_res < 0) {
             // TODO: Handle
@@ -186,6 +188,7 @@ void execute_first_operand_async_and_start_appender(Node *node) {
 
 void init_appender (Appender *appender) {
     open_pipe_if_needed(appender->to, FROM_NODE);
+    open_redirect_file_if_needed(appender->to);
 
     int i;
     for (i = 0; i < appender->from_count; i++) {
@@ -292,7 +295,7 @@ BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **re
     OperandsNode operands = tree->value.operands;
 
     for (i = 0; i < operands.count && !found; i++) {
-        //found = find_node_inƒ_tree_with_pid(operands.nodes[i], pid, result, result_father);
+        found = find_node_in_tree_with_pid(operands.nodes[i], pid, result, result_father);
         if (found && *result_father == NULL) {
             *result_father = tree;
         }
@@ -327,6 +330,11 @@ Node * find_next_executable (Node *father, Node *executed_child) {
 }
 
 
-void close_not_used_file_descriptors_except(int std_in, int std_out) {
-
+void close_file_descriptors_except(int std_in, int std_out) {
+    int i;
+    for (i = 0; i < 100; i++) {
+        if (i != std_out && i != std_in) {
+            close(i);
+        }
+    }
 }
