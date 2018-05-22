@@ -115,7 +115,7 @@ void should_wire_operands () {
     assert_std_stream(false->std_in, STDIN_FILENO);
     assert_std_stream(and.std_out, STDOUT_FILENO);
 
-    Stream *concat = and.value.operands.concatenator;
+    Stream *concat = and.value.operands.appender;
     my_assert(concat->options.concat.from_count == and.value.operands.count, "%d != %d", concat->options.concat.from_count, and.value.operands.count);
     assert_pipe_connected(true->std_out, concat->options.concat.from[0]);
     assert_pipe_connected(false->std_out, concat->options.concat.from[1]);

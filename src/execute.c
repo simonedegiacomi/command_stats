@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <sys/errno.h>
 #include "execute.h"
+#include "structs.h"
 
 
 typedef enum StreamDirection {
@@ -16,21 +17,22 @@ typedef enum StreamDirection {
 void execute_async(Node *node);
 void execute_executable_async(Node *node);
 void execute_pipe_async(Node *pipe_node);
-void execute_first_operand_async(Node *node);
+void execute_first_operand_async_and_start_appender(Node *node);
 
 void manage_running_nodes_and_collect_data (Node *tree);
 BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father);
 BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **result_father);
 
 void run_execute_executable_child (Node *node);
-void run_execute_executable_father(Node *node, int fork_result);
 
 
-void init_streams_before_fork(Node *node);
-void init_stream_before_fork(Stream *to_init, StreamDirection direction);
-void init_streams_before_exec(Node *node);
-void init_stream_before_exec(Stream *to_init, StreamDirection direction);
-void init_concatenator(ConcatenatedStream *to_init);
+void open_pipes_if_needed(Node *node);
+void open_pipe_if_needed(Stream *to_init, StreamDirection direction);
+void open_redirects_files_if_needed(Node *node);
+void open_redirect_file_if_needed(Stream *to_init);
+void init_appender(Appender *to_init);
+void run_appender_main (Appender *appender);
+void close_not_used_file_descriptors_except(int std_in, int std_out);
 
 
 void assign_results (Node *node, int exit_code, struct rusage *statistic);
@@ -56,7 +58,7 @@ void execute_async(Node *node) {
 		case AndNode_T:
         case OrNode_T:
         case SemicolonNode_T:
-            execute_first_operand_async(node);
+            execute_first_operand_async_and_start_appender(node);
 			break;
 
 		default:
@@ -67,101 +69,58 @@ void execute_async(Node *node) {
 }
 
 void execute_executable_async(Node *node) {
-    init_streams_before_fork(node);
+    open_pipes_if_needed(node);
     int fork_result = fork();
 
     if (fork_result < 0) {
         fprintf(stderr, "[EXECUTE] can't fork to execute executable\n");
         node->result = NULL;
     } else if (fork_result > 0) {
-        run_execute_executable_father(node, fork_result);
+        node->pid = fork_result;
+        node->result = create_execution_result();
+
+
+        if (node->std_in->type == PipeStream_T) {
+            close(node->std_in->options.pipe->descriptors[READ_FROM_PIPE]);
+        }
+        if (node->std_out->type == PipeStream_T) {
+            close(node->std_out->options.pipe->descriptors[WRITE_INTO_PIPE]);
+        }
+
     } else {
         run_execute_executable_child(node);
     }
 }
 
-void run_execute_executable_father(Node *node, int fork_result) {
-    // TODO: Explain why this is necessary
-    if (node->std_in->type == PipeStream_T) {
-        close(node->std_in->file_descriptor);
-    }
-    if (node->std_out->type == PipeStream_T) {
-        close(node->std_out->file_descriptor);
-    }
 
-    node->pid = fork_result;
-    node->result = create_execution_result();
+
+void open_pipes_if_needed(Node *node) {
+    open_pipe_if_needed(node->std_in, TO_NODE);
+    open_pipe_if_needed(node->std_out, FROM_NODE);
 }
 
-void init_streams_before_fork(Node *node) {
-    init_stream_before_fork(node->std_in, TO_NODE);
-    init_stream_before_fork(node->std_out, FROM_NODE);
-}
+void open_pipe_if_needed(Stream *to_init, StreamDirection direction) {
+    if (to_init->type == PipeStream_T) {
+        PipeStream *pipe_stream = to_init->options.pipe;
+        if (!pipe_stream->initialized) {
+            // This function is still called from the father, so
+            // TODO: Explain why it works
+            pipe(pipe_stream->descriptors);
+            pipe_stream->initialized = TRUE;
+        }
 
-void init_stream_before_fork(Stream *to_init, StreamDirection direction){
-    PipeStream *pipe_stream;
-    ConcatenatedStream *concat_stream;
-
-    switch (to_init->type) {
-        case PipeStream_T:
-            pipe_stream = to_init->options.pipe;
-            if (!pipe_stream->initialized) {
-                // This function is still called from the father, so
-                // TODO: Explain why it works
-                pipe(pipe_stream->descriptors);
-                pipe_stream->initialized = TRUE;
-            }
-
-            if (direction == TO_NODE) {
-                to_init->file_descriptor = pipe_stream->descriptors[READ_FROM_PIPE];
-            } else if (direction == FROM_NODE) {
-                to_init->file_descriptor = pipe_stream->descriptors[WRITE_INTO_PIPE];
-            }
-            break;
-
-        case ConcatenatedStream_T:
-            concat_stream = &to_init->options.concat;
-            if (!concat_stream->initialized) {
-                init_concatenator(concat_stream);
-            }
-            break;
-
-        default:
-            break;
+        if (direction == TO_NODE) {
+            to_init->file_descriptor = pipe_stream->descriptors[READ_FROM_PIPE];
+        } else if (direction == FROM_NODE) {
+            to_init->file_descriptor = pipe_stream->descriptors[WRITE_INTO_PIPE];
+        }
     }
 }
 
-void init_concatenator(ConcatenatedStream *to_init) {
-    init_stream_before_fork(to_init->to, FROM_NODE);
-
-    int i;
-    for (i = 0; i < to_init->from_count; i++) {
-        init_stream_before_fork(to_init->from[i], TO_NODE);
-    }
-
-
-    int fork_res = fork();
-    if (fork_res < 0) {
-        printf("concatenator fork error\n");
-        exit(-1);
-    } else if (fork_res == 0) {
-        to_init->initialized = TRUE;
-        // TODO: Chiudere pipe
-    } else {
-        /*char buffer[1024];
-        for (i = 0; i < to_init->from_count; i++) {
-            int read_res;
-            do {
-                read_res = read();
-            } while (read_res != 0);
-        }*/
-    }
-
-}
 
 
 void run_execute_executable_child (Node *node) {
-    init_streams_before_exec(node);
+    open_redirects_files_if_needed(node);
 
     int std_in  = node->std_in->file_descriptor;
     int std_out = node->std_out->file_descriptor;
@@ -175,6 +134,8 @@ void run_execute_executable_child (Node *node) {
         dup2(std_out, STDOUT_FILENO);
     }
 
+    close_not_used_file_descriptors_except(std_in, std_out);
+
     execvp(node->value.executable.path, node->value.executable.argv);
 
     // If we're here, execvp is failed, report the error to the father
@@ -183,40 +144,20 @@ void run_execute_executable_child (Node *node) {
 }
 
 
-void init_streams_before_exec(Node *node) {
-    init_stream_before_exec(node->std_in, TO_NODE);
-    init_stream_before_exec(node->std_out, FROM_NODE);
+void open_redirects_files_if_needed(Node *node) {
+    open_redirect_file_if_needed(node->std_in);
+    open_redirect_file_if_needed(node->std_out);
 }
 
-void init_stream_before_exec(Stream *to_init, StreamDirection direction) {
-    PipeStream *pipe_stream;
-    int open_res;
-
-
-    switch (to_init->type) {
-        case FileStream_T:
-            // TODO: Check if the file is closed automatically
-            // TODO: L'ultimo argomento, se siamo in lettura, è automaticamente ignorato?
-            open_res = open(to_init->options.file.name, to_init->options.file.open_flag, 0666);
-            if (open_res < 0) {
-                // TODO: Handle
-                printf("Errore apertura file: %d\n", errno);
-            } else {
-                to_init->file_descriptor = open_res;
-            }
-            break;
-
-        case PipeStream_T:
-            pipe_stream = to_init->options.pipe;
-            if (direction == TO_NODE) {
-                close(pipe_stream->descriptors[WRITE_INTO_PIPE]);
-            } else {
-                close(pipe_stream->descriptors[READ_FROM_PIPE]);
-            }
-            break;
-        default:
-            printf("default\n");
-            break;
+void open_redirect_file_if_needed(Stream *to_init) {
+    if (to_init->type == FileStream_T) {
+        int open_res = open(to_init->options.file.name, to_init->options.file.open_flag, 0666);
+        if (open_res < 0) {
+            // TODO: Handle
+            printf("Errore apertura file: %d\n", errno);
+        } else {
+            to_init->file_descriptor = open_res;
+        }
     }
 }
 
@@ -235,11 +176,71 @@ void execute_pipe_async(Node *pipe_node) {
 
 
 
-void execute_first_operand_async(Node *node) {
+void execute_first_operand_async_and_start_appender(Node *node) {
+    Appender *appender = node->value.operands.appender;
+    init_appender(appender);
+
     OperandsNode operands = node->value.operands;
     execute_async(operands.nodes[0]);
 }
 
+void init_appender (Appender *appender) {
+    open_pipe_if_needed(appender->to, FROM_NODE);
+
+    int i;
+    for (i = 0; i < appender->from_count; i++) {
+        open_pipe_if_needed(appender->from[i], TO_NODE);
+    }
+
+
+    int fork_res = fork();
+    if (fork_res < 0) {
+        // TODO: Handle error
+    } else if (fork_res > 0) {
+        close(appender->to->file_descriptor);
+        for (i = 0; i < appender->from_count; i++) {
+            // Questo dovrebbe essere per forza una pipe
+            close(appender->from[i]->options.pipe->descriptors[READ_FROM_PIPE]);
+        }
+        // father
+        return;
+    } else {
+        run_appender_main(appender);
+    }
+}
+
+
+void run_appender_main (Appender *appender) {
+    printf("[APPENDER] avviato\n");
+    if (appender->to->type == PipeStream_T) {
+        close(appender->to->options.pipe->descriptors[READ_FROM_PIPE]);
+    }
+
+    int i;
+    for (i = 0; i < appender->from_count; i++) {
+        close(appender->from[i]->options.pipe->descriptors[WRITE_INTO_PIPE]);
+    }
+
+
+    char buffer[1024];
+    for (i = 0; i < appender->from_count; i++) {
+        printf("[APPENDER] Inizio a leggere\n");
+        // TODO: Quando cambiamo nodo dobbiamo fare qualcosa?
+        ssize_t read_res;
+        do {
+            read_res = read(appender->from[i]->file_descriptor, buffer, 1024);
+            printf("[APPENDER] Letti: %zd\n", read_res);
+            if (read_res > 0) {
+                write(appender->to->file_descriptor, buffer, (size_t) read_res);
+            }
+        } while (read_res > 0); // TODO: Handle error (-1) and EOF (0)
+        close(appender->from[i]->file_descriptor);
+        printf("[APPENDER] Ho finito di leggere da una pipe, inizio l'altra\n");
+    }
+    close(appender->to->file_descriptor);
+    printf("[APPENDER] Ho finito il mio lavoro\n");
+    exit(0);
+}
 
 
 
@@ -291,12 +292,11 @@ BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **re
     OperandsNode operands = tree->value.operands;
 
     for (i = 0; i < operands.count && !found; i++) {
-        found = find_node_in_tree_with_pid(operands.nodes[i], pid, result, result_father);
+        //found = find_node_inƒ_tree_with_pid(operands.nodes[i], pid, result, result_father);
         if (found && *result_father == NULL) {
             *result_father = tree;
         }
     }
-    
 
     return found;
 }
@@ -326,3 +326,7 @@ Node * find_next_executable (Node *father, Node *executed_child) {
     return next_index < 0 ? NULL : operands->nodes[next_index];
 }
 
+
+void close_not_used_file_descriptors_except(int std_in, int std_out) {
+
+}
