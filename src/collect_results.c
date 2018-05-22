@@ -3,14 +3,17 @@
 #include "collect_results.h"
 #include "my_regex.h"
 
+// TODO: Possiamo rimuovere queste variabili globali?
 BOOL set_csv_header = FALSE;
 long HASH;
 const char *possible_options[] = {"exit_code", "user_cpu_time", "system_cpu_time", "clock_time", "maximum_resident_set_size"};
 
 
+
 SplitResult * parse_options(char *options_string) {
-	const regex_t * compiled 	= compile_regex(",");
-	SplitResult *split 			= split_string(options_string, compiled);
+	const regex_t * compiled = compile_regex(",");
+	SplitResult *split = split_string(options_string, compiled);
+
 
 	regfree((regex_t *) compiled);
 
