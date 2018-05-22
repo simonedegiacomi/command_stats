@@ -1,4 +1,5 @@
 #include "collect_results.h"
+#include "my_regex.h"
 
 BOOL set_csv_header = FALSE;
 long HASH;
@@ -16,6 +17,11 @@ BOOL check_option_is_in_options(const char *options[], char *option) {
 
 
 char ** parse_options(char *options_string) {
+	const regex_t * compiled = compile_regex(",");
+	SplitResult *split = split_string(options_string, compiled);
+	
+
+
 	if (options_string == NULL) {
 		return NULL;
 	}
