@@ -1,11 +1,14 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#include "common.h"
+
 typedef enum NodeType {
     PipeNode_T,
     ExecutableNode_T,
     AndNode_T,
-    OrNode_T
+    OrNode_T,
+    SemicolonNode_T
 } NodeType;
 
 typedef struct Node Node;
@@ -20,7 +23,6 @@ typedef struct ExecutableNode {
 } ExecutableNode;
 
 typedef struct OperandsNode {
-    //TODO: rename everywhere with operands_count
     int 	count;
     Node 	**nodes;
     Stream  *concatenator;
@@ -39,16 +41,18 @@ typedef struct FileStream {
 } FileStream;
 
 typedef struct PipeStream {
-    int descriptors[2];
+    BOOL initialized;
+    int  descriptors[2];
 } PipeStream;
 
 
 typedef struct ConcatenatedStream {
-
-    Stream *to;
     int from_count;
     Stream **from;
 
+    Stream *to;
+
+    BOOL initialized;
 } ConcatenatedStream;
 
 typedef struct Stream {
@@ -56,7 +60,7 @@ typedef struct Stream {
     int file_descriptor;
     union {
         FileStream 	        file;
-        PipeStream          pipe;
+        PipeStream          *pipe;
         ConcatenatedStream  concat;
 
     } options;
@@ -64,11 +68,14 @@ typedef struct Stream {
 
 
 typedef struct ExecutionResult {
-    int     exit_code;
-    struct  timeval user_cpu_time_used; 
-    struct  timeval system_cpu_time_used;
-    long    clock_time;
-    long    maximum_resident_set_size;
+    // TODO: Choose between REALTIME and MONOTONIC
+    long                start_time;
+    long                end_time;
+    int                 exit_code;
+    struct timeval      user_cpu_time_used;
+    struct timeval      system_cpu_time_used;
+    long                clock_time;
+    long                maximum_resident_set_size;
 } ExecutionResult;
 
 struct Node {
@@ -79,20 +86,25 @@ struct Node {
     } value;
 
     // Array of in and outs.
-    // TODO: To implement redirect for any file scriptor we need to change these
+    // TODO: To implement redirect for any file descriptor we need to change these
     // two fields into a sort of map
     Stream *std_in;
     Stream *std_out;
 
     ExecutionResult *result;
+    int pid;
 };
 
 
 
 
-Node *new_node();
-Node *new_executable_node(const char* path);
+Node *create_node();
+Node *create_executable_node(const char *path);
+Node *create_executable_node_single_arg(const char *path);
+ExecutionResult *create_execution_result();
 Stream *        wrap_pipe_into_stream   (PipeStream *pipe_stream, int direction);
 Stream **       wrap_stream_into_array  (Stream *stream);
+
+int count_executables_in_tree (Node *node);
 
 #endif

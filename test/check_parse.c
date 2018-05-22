@@ -4,6 +4,7 @@
 #include "../src/parse.h"
 #include "my_assert.h"
 #include "utils.h"
+#include "../src/common.h"
 #include <fcntl.h>
 
 
@@ -11,7 +12,7 @@ void should_parse_ls_with_argument() {
     char *input = "ls -lah";
     Node *parsed = create_tree_from_string(input);
 
-    Node *expected = new_executable_node("ls");
+    Node *expected = create_executable_node("ls");
 
     ExecutableNode *executable = &expected->value.executable;
     executable->argc = 2;
@@ -26,7 +27,7 @@ void should_parse_ls_with_two_arguments() {
     char *input = "ls -l -a";
     Node *parsed = create_tree_from_string(input);
 
-    Node *expected = new_executable_node("ls");
+    Node *expected = create_executable_node("ls");
     ExecutableNode *executable = &expected->value.executable;
     executable->argc = 3;
     executable->argv = malloc(4 * sizeof(char *));
@@ -131,6 +132,29 @@ void should_parse_or() {
 
     Node expected = {
             .type = OrNode_T,
+            .value = {
+                    .operands = {
+                            .count = 2,
+                            .nodes = nodes
+                    }
+            }
+    };
+
+    check_tree_equals(&expected, parsed);
+}
+
+
+void should_parse_semicolon() {
+    char *input = "false; true";
+    Node *parsed = create_tree_from_string(input);
+
+    Node *nodes[] = {
+            create_executable_node_single_arg("false"),
+            create_executable_node_single_arg("true")
+    };
+
+    Node expected = {
+            .type = SemicolonNode_T,
             .value = {
                     .operands = {
                             .count = 2,
@@ -298,13 +322,14 @@ void run_parser_test() {
 
     should_parse_and();
     should_parse_or();
+    should_parse_semicolon();
 
     should_parse_parentesis();
     should_parse_redirect();
-    should_parse_and_inside_brackets_with_pipe(); // ma va davvero???*/
+    should_parse_and_inside_brackets_with_pipe(); // ma va davvero???
 
-    //should_parse_near_quotation_marks_as_single_parameter();
-    //should_parse_escaped_quotation_marks();
+    should_parse_near_quotation_marks_as_single_parameter();
+    should_parse_escaped_quotation_marks();
 
     printf("[PARSER TEST] All test passed\n");
 }

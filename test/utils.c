@@ -24,6 +24,7 @@ void check_tree_equals(Node *expected, Node *actual) {
         case PipeNode_T:
         case AndNode_T:
         case OrNode_T:
+        case SemicolonNode_T:
             check_operands_equals(
                     &expected->value.operands,
                     &actual->value.operands);
