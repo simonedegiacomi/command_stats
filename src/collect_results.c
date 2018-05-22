@@ -3,9 +3,11 @@
 BOOL set_csv_header = FALSE;
 long HASH;
 const char *possible_options[] = {"exit_code", "user_cpu_time", "system_cpu_time", "clock_time", "maximum_resident_set_size"};
+int dimension;
+
 
 BOOL check_option_is_in_options(const char *options[], char *option) {
-	int dimension = sizeof(options) / sizeof(char*);
+	
 	for (int i = 0; i < dimension; i++) {
 		if (!strcmp(options[0],option)) {
 			return TRUE;
@@ -16,10 +18,15 @@ BOOL check_option_is_in_options(const char *options[], char *option) {
 
 
 char ** parse_options(char *options_string) {
+	
+
+
+
 	if (options_string == NULL) {
 		return NULL;
 	}
 	char **options;
+
 	options[0] = strtok(options_string, ",");
 	int i = 1;
 	while (options[i] != NULL) {
