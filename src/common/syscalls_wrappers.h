@@ -5,10 +5,11 @@
 #include <sys/types.h>
 #include <sys/msg.h>
 
-void syscall_fail(const char *message);
 int my_open(const char *pathname, int flags);
-char *my_read(int fd);
 ssize_t my_write(int fd, void *buffer, size_t bytes_to_write);
+int my_close(int fd);
+int my_unlink(const char *pathname);
+int my_mkfifo(const char *pathname, mode_t mode);
 
 /* ***** MESSAGE QUEUES ***** */
 key_t my_ftok(const char *pathname, int proj_id);

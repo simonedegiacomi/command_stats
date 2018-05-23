@@ -16,5 +16,6 @@ long get_current_time ();
 void enable_logging();
 void print_log(const char *format, ...);
 void program_fail(const char *format, ...);
+void syscall_fail(const char *message);
 
 #endif
