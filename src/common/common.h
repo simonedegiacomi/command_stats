@@ -14,6 +14,7 @@
 long get_current_time ();
 
 void enable_logging();
+BOOL is_logging_enabled();
 void print_log(const char *format, ...);
 void program_fail(const char *format, ...);
 void syscall_fail(const char *message);
