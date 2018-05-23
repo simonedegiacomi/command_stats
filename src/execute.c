@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/errno.h>
+#include <dirent.h>
 #include "execute.h"
 #include "structs.h"
 
@@ -14,51 +15,64 @@ typedef enum StreamDirection {
     FROM_NODE
 } StreamDirection;
 
-void execute_async(Node *node);
-void execute_executable_async(Node *node);
-void execute_pipe_async(Node *pipe_node);
-void execute_first_operand_async_and_start_appender(Node *node);
+typedef struct Context {
+    int *open_appender_file_descriptors;
+    int actually_open;
+}  Context;
 
-void manage_running_nodes_and_collect_data (Node *tree);
+void execute_async(Context *context, Node *node);
+void execute_executable_async(Context *context, Node *node);
+void execute_pipe_async(Context *context, Node *pipe_node);
+void execute_first_operand_async_and_start_appender(Context *context, Node *node);
+
+void manage_running_nodes_and_collect_data (Context *context, Node *tree);
 BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father);
 BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **result_father);
 
-void run_execute_executable_child (Node *node);
+void run_execute_executable_child (Context *context, Node *node);
 
 
 void open_pipes_if_needed(Node *node);
 void open_pipe_if_needed(Stream *to_init, StreamDirection direction);
 void open_redirects_files_if_needed(Node *node);
 void open_redirect_file_if_needed(Stream *to_init);
-void init_appender(Appender *to_init);
+void init_appender(Context *context, Appender *appender);
 void run_appender_main (Appender *appender);
-void close_not_used_file_descriptors_except(int std_in, int std_out);
+void close_file_descriptors_except(Context *context, int std_in, int std_out);
 
 
 void assign_results (Node *node, int exit_code, struct rusage *statistic);
 Node * find_next_executable (Node *father, Node *executed_child);
 
 
+
 void execute (Node *node) {
-    execute_async(node);
-    manage_running_nodes_and_collect_data(node);
+    int max_appender_file_descriptors = count_max_appender_file_descriptors(node);
+    Context context = {
+            .open_appender_file_descriptors = malloc(max_appender_file_descriptors * sizeof(int)),
+            .actually_open = 0
+    };
+
+    execute_async(&context, node);
+
+    manage_running_nodes_and_collect_data(&context, node);
 }
 
 
-void execute_async(Node *node) {
+void execute_async(Context *context, Node *node) {
 	switch (node->type) {
 		case ExecutableNode_T:
-            execute_executable_async(node);
+            execute_executable_async(context, node);
 			break;
 
         case PipeNode_T:
-			execute_pipe_async(node);
+			execute_pipe_async(context, node);
 			break;
 
 		case AndNode_T:
         case OrNode_T:
         case SemicolonNode_T:
-            execute_first_operand_async_and_start_appender(node);
+            execute_first_operand_async_and_start_appender(context, node);
 			break;
 
 		default:
@@ -68,7 +82,7 @@ void execute_async(Node *node) {
 
 }
 
-void execute_executable_async(Node *node) {
+void execute_executable_async(Context *context, Node *node) {
     open_pipes_if_needed(node);
     int fork_result = fork();
 
@@ -88,7 +102,7 @@ void execute_executable_async(Node *node) {
         }
 
     } else {
-        run_execute_executable_child(node);
+        run_execute_executable_child(context, node);
     }
 }
 
@@ -119,7 +133,7 @@ void open_pipe_if_needed(Stream *to_init, StreamDirection direction) {
 
 
 
-void run_execute_executable_child (Node *node) {
+void run_execute_executable_child (Context *context, Node *node) {
     open_redirects_files_if_needed(node);
 
     int std_in  = node->std_in->file_descriptor;
@@ -128,13 +142,15 @@ void run_execute_executable_child (Node *node) {
     if (std_in != STDIN_FILENO) {
         close(STDIN_FILENO);
         dup2(std_in, STDIN_FILENO);
+        close(std_in);
     }
     if (std_out != STDOUT_FILENO) {
         close(STDOUT_FILENO);
         dup2(std_out, STDOUT_FILENO);
+        close(std_out);
     }
 
-    close_not_used_file_descriptors_except(std_in, std_out);
+    close_file_descriptors_except(context, STDIN_FILENO, STDOUT_FILENO);
 
     execvp(node->value.executable.path, node->value.executable.argv);
 
@@ -162,30 +178,31 @@ void open_redirect_file_if_needed(Stream *to_init) {
 }
 
 
-void execute_pipe_async(Node *pipe_node) {
+void execute_pipe_async(Context *context, Node *pipe_node) {
     OperandsNode *operands = &pipe_node->value.operands;
     int operands_count = operands->count;
 
     int i;
     for (i = 0; i < operands_count; i++) {
         Node *to_execute = operands->nodes[i];
-        execute_async(to_execute);
+        execute_async(context, to_execute);
     }
 }
 
 
 
 
-void execute_first_operand_async_and_start_appender(Node *node) {
+void execute_first_operand_async_and_start_appender(Context *context, Node *node) {
     Appender *appender = node->value.operands.appender;
-    init_appender(appender);
+    init_appender(context, appender);
 
     OperandsNode operands = node->value.operands;
-    execute_async(operands.nodes[0]);
+    execute_async(context, operands.nodes[0]);
 }
 
-void init_appender (Appender *appender) {
+void init_appender (Context *context, Appender *appender) {
     open_pipe_if_needed(appender->to, FROM_NODE);
+    open_redirect_file_if_needed(appender->to);
 
     int i;
     for (i = 0; i < appender->from_count; i++) {
@@ -198,9 +215,13 @@ void init_appender (Appender *appender) {
         // TODO: Handle error
     } else if (fork_res > 0) {
         close(appender->to->file_descriptor);
+        context->open_appender_file_descriptors[context->actually_open++] = appender->to->options.pipe->descriptors[READ_FROM_PIPE];
+
         for (i = 0; i < appender->from_count; i++) {
             // Questo dovrebbe essere per forza una pipe
             close(appender->from[i]->options.pipe->descriptors[READ_FROM_PIPE]);
+
+            context->open_appender_file_descriptors[context->actually_open++] = appender->from[i]->options.pipe->descriptors[WRITE_INTO_PIPE];
         }
         // father
         return;
@@ -244,7 +265,7 @@ void run_appender_main (Appender *appender) {
 
 
 
-void manage_running_nodes_and_collect_data (Node *tree) {
+void manage_running_nodes_and_collect_data (Context *context, Node *tree) {
     int to_wait = count_executables_in_tree(tree);
     while (to_wait > 0) {
         printf("to wait: %d\n", to_wait);
@@ -263,7 +284,7 @@ void manage_running_nodes_and_collect_data (Node *tree) {
                 Node *next = find_next_executable(exited_node_father, exited_node);
 
                 if (next != NULL) {
-                    execute_executable_async(next);
+                    execute_executable_async(context, next);
                 }
             }
 
@@ -292,7 +313,7 @@ BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **re
     OperandsNode operands = tree->value.operands;
 
     for (i = 0; i < operands.count && !found; i++) {
-        //found = find_node_inƒ_tree_with_pid(operands.nodes[i], pid, result, result_father);
+        found = find_node_in_tree_with_pid(operands.nodes[i], pid, result, result_father);
         if (found && *result_father == NULL) {
             *result_father = tree;
         }
@@ -327,6 +348,12 @@ Node * find_next_executable (Node *father, Node *executed_child) {
 }
 
 
-void close_not_used_file_descriptors_except(int std_in, int std_out) {
-
+void close_file_descriptors_except(Context *context, int std_in, int std_out) {
+    int i;
+    for (i = 0; i < context->actually_open; i++) {
+        int fd = context->open_appender_file_descriptors[i];
+        if (fd != std_out && fd != std_in) {
+            close(fd);
+        }
+    }
 }

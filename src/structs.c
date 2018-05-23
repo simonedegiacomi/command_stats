@@ -66,3 +66,19 @@ ExecutionResult *create_execution_result() {
 
     return res;
 }
+
+int count_max_appender_file_descriptors(Node *node) {
+    if (node->type != AndNode_T && node->type != OrNode_T && node->type != SemicolonNode_T) {
+        return 0;
+    }
+
+    OperandsNode *operands = &node->value.operands;
+    int sum = operands->count + 1;
+    int i;
+    for (i = 0; i < operands->count; i++) {
+        sum += count_max_appender_file_descriptors(operands->nodes[i]);
+    }
+    
+    return sum;
+}
+
