@@ -2,7 +2,7 @@
 #include <string.h>
 #include "utils.h"
 #include "my_assert.h"
-#include "../src/parse.h"
+#include "../src/parse/parse.h"
 
 void check_executable_equals(ExecutableNode *expected, ExecutableNode *actual);
 void check_operands_equals(OperandsNode *expected, OperandsNode *actual);
@@ -13,7 +13,6 @@ void check_file_stream_equals(Stream *expected, Stream *actual);
 void check_tree_equals(Node *expected, Node *actual) {
     my_assert(expected != NULL && actual != NULL, "null node");
     my_assert(actual->type == expected->type, "different node type %d != %d", actual->type, expected->type);
-    printf("tipo giusto\n");
 
     switch (expected->type) {
         case ExecutableNode_T:

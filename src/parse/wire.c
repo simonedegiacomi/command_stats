@@ -111,10 +111,6 @@ void wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out) {
     appender->from = malloc(operands->count * sizeof(Stream*));
     appender->to = out;
 
-    if (out->type == FileStream_T) {
-        printf("ok\n");
-    }
-
     int i;
     for (i = 0; i < operands->count; i++) {
         Node *node = operands->nodes[i];

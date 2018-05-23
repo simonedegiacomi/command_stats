@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "structs.h"
+#include "node.h"
 
 
 BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **result_father);
@@ -32,21 +32,6 @@ Node *create_executable_node_single_arg(const char *path) {
     return node;
 }
 
-Stream * wrap_pipe_into_stream (PipeStream *pipe_stream, int direction) {
-    Stream *stream = malloc(sizeof(Stream));
-
-    stream->type 			                = PipeStream_T;
-    stream->file_descriptor                 = pipe_stream->descriptors[direction];
-    stream->options.pipe                    = pipe_stream;
-
-    return stream;
-}
-
-Stream ** wrap_stream_into_array (Stream *stream) {
-    Stream **streams = malloc(sizeof(stream));
-    streams[0] = stream;
-    return streams;
-}
 
 int count_executables_in_tree (Node *node) {
     if (node->type == ExecutableNode_T) {

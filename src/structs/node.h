@@ -2,7 +2,8 @@
 #define STRUCTS_H
 
 #include <sys/time.h>
-#include "common.h"
+#include "../structs/stream.h"
+#include "../common/common.h"
 
 typedef enum NodeType {
     PipeNode_T,
@@ -13,8 +14,7 @@ typedef enum NodeType {
 } NodeType;
 
 typedef struct Node Node;
-typedef struct Stream Stream;
-typedef struct Appender Appender;
+
 
 
 typedef struct ExecutableNode {
@@ -30,38 +30,6 @@ typedef struct OperandsNode {
     Appender  *appender; // Used only in and, or, and semicolon
 } OperandsNode;
 
-typedef enum StreamType {
-    FileDescriptorStream_T,
-    FileStream_T,
-    PipeStream_T
-} StreamType;
-
-typedef struct FileStream {
-    const char *name;
-    int open_flag;
-} FileStream;
-
-typedef struct PipeStream {
-    BOOL initialized;
-    int  descriptors[2];
-} PipeStream;
-
-
-typedef struct Appender {
-    int from_count;
-    Stream **from;
-
-    Stream *to;
-} Appender;
-
-typedef struct Stream {
-    StreamType type;
-    int file_descriptor;
-    union {
-        FileStream 	        file;
-        PipeStream          *pipe;
-    } options;
-} Stream;
 
 
 typedef struct ExecutionResult {
@@ -100,15 +68,14 @@ Node *create_node();
 Node *create_executable_node(const char *path);
 Node *create_executable_node_single_arg(const char *path);
 ExecutionResult *create_execution_result();
-Stream *        wrap_pipe_into_stream   (PipeStream *pipe_stream, int direction);
-Stream **       wrap_stream_into_array  (Stream *stream);
+
 
 int count_executables_in_tree (Node *node);
-int count_max_appender_file_descriptors(Node *node);
 
 
 BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father);
 Node * find_next_executable_in_operands(Node *father, Node *executed_child);
 BOOL is_operand_node (Node *node);
+int count_max_appender_file_descriptors(Node *node);
 
 #endif

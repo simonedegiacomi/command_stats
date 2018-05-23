@@ -2,8 +2,8 @@
 #define COLLECT_RESULT_H
 
 #include <stdio.h>
-#include "common.h"
-#include "structs.h"
+#include "../common/common.h"
+#include "../structs/node.h"
 
 typedef enum FileFormat {
 	TXT,

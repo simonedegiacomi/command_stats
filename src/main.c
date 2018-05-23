@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>
-#include "parse.h"
-#include "execute.h"
-#include "wire.h"
-#include "collect_results.h"
+#include "parse/parse.h"
+#include "execute/execute.h"
+#include "collect_results/collect_results.h"
 
 const char *DEFAULT_LOG_PATH		= "./log.txt";
 const char *DEFAULT_LOG_OPTIONS 	= "./log.txt";
@@ -40,10 +39,6 @@ int main (int argc, char *argv[]) {
     initialize_parser();
 	const char *input = argv[argc - 1];
 	Node *command_tree = create_tree_from_string(input);
-
-
-	// Connect pipe and stream together
-    wire(command_tree);
 
 	// Execute the command
     execute(command_tree);

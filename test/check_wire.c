@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "my_assert.h"
-#include "../src/wire.h"
-#include "../src/common.h"
-#include "../src/structs.h"
+#include "../src/parse/wire.h"
+#include "../src/common/common.h"
+#include "../src/structs/node.h"
 
 
 int pipe(int fds[]) {

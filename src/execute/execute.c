@@ -1,12 +1,10 @@
 #include <unistd.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/errno.h>
 #include "execute.h"
-#include "syscalls_wrappers.h"
+#include "../common/syscalls_wrappers.h"
 
 
 typedef enum StreamDirection {

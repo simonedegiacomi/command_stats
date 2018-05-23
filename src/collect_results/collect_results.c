@@ -1,7 +1,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "collect_results.h"
-#include "my_regex.h"
+#include "../common/my_regex.h"
 
 BOOL set_csv_header = FALSE;
 long HASH;

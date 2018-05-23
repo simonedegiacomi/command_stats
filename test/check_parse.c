@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include "../src/parse.h"
-#include "my_assert.h"
+#include "../src/parse/parse.h"
 #include "utils.h"
-#include "../src/common.h"
-#include <fcntl.h>
 
 
 void should_parse_ls_with_argument() {
@@ -317,7 +313,6 @@ void should_parse_escaped_quotation_marks() {
 
 void should_parse_command_with_useless_brackets () {
     char *command = "(echo \"a\" && echo \"b\") | (wc)";
-    printf("\n\nInizia ora\n");
     Node *parsed = create_tree_from_string(command);
 
     Node expected = {
