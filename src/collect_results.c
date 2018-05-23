@@ -1,5 +1,5 @@
 #include "collect_results.h"
-#include "my_regex.h"
+
 
 BOOL set_csv_header = FALSE;
 long HASH;
@@ -7,7 +7,7 @@ const char *possible_options[] = {"exit_code", "user_cpu_time", "system_cpu_time
 int dimension;
 
 
-BOOL check_option_is_in_options(const char *options[], char *option) {
+BOOL check_option_is_in_options(const char *options[], const char *option) {
 	
 	for (int i = 0; i < dimension; i++) {
 		if (!strcmp(options[0],option)) {
@@ -18,28 +18,24 @@ BOOL check_option_is_in_options(const char *options[], char *option) {
 }
 
 
-char ** parse_options(char *options_string) {
-
-	const regex_t * compiled = compile_regex(",");
-	SplitResult *split = split_string(options_string, compiled);
-	
-
-
+const char ** parse_options(char *options_string) {
 	if (options_string == NULL) {
 		return NULL;
 	}
-	char **options;
 
-	options[0] = strtok(options_string, ",");
-	int i = 1;
-	while (options[i] != NULL) {
-		char *option_to_check = strtok(NULL, " ");
-		if(check_option_is_in_options(possible_options,option_to_check)) {
-			options[i] = option_to_check;
+
+	const regex_t * compiled = compile_regex(",");
+	SplitResult *split = split_string(options_string, compiled);
+	char **options = malloc(split->count);
+	for (int i = 0; i < split->count; i++) {
+		if(check_option_is_in_options(possible_options,split->sub_strings[i])) {
+			options[i] = malloc(sizeof(char) * 255);
+			strcpy(options[i],split->sub_strings[i]);
+			printf("%s\n",options[i]);
 		}
-		i++;
 	}
 	return options;
+	
 }
 
 long hash(char *str) {
@@ -55,7 +51,7 @@ long hash(char *str) {
 
 
 
-void print_executable_node_in_txt(Node *node, FILE *stream_out, char *command, int path_id, char **options) {
+void print_executable_node_in_txt(Node *node, FILE *stream_out, char *command, int path_id, const char **options) {
 	int dimension = sizeof(options) / sizeof(char[255]);
 	ExecutionResult *result = node->result;
 	fprintf(stream_out, "------------------------------------\n");
@@ -85,7 +81,7 @@ void print_executable_node_in_txt(Node *node, FILE *stream_out, char *command, i
 }
 
 
-void print_executable_node_in_csv(Node *node, FILE *stream_out, char *command, int path_id, char **options) {
+void print_executable_node_in_csv(Node *node, FILE *stream_out, char *command, int path_id, const char **options) {
 	int dimension = sizeof(options) / sizeof(char[255]);
 	if (!set_csv_header) {
 		if (options == NULL) {
@@ -126,7 +122,7 @@ void print_executable_node_in_csv(Node *node, FILE *stream_out, char *command, i
 
 }
 
-void print_executable_node(Node *node, FILE *stream_out, FileFormat format, char *command, int path_id, char **options) {
+void print_executable_node(Node *node, FILE *stream_out, FileFormat format, char *command, int path_id, const char **options) {
 	switch (format) {
 		case TXT:
 			print_executable_node_in_txt(node,stream_out,command,path_id,options);
@@ -138,7 +134,7 @@ void print_executable_node(Node *node, FILE *stream_out, FileFormat format, char
 }
 
 
-void collect_and_print_results_rec(Node *node, FILE *stream_out, FileFormat format, char *command, int path_id, char **options) {
+void collect_and_print_results_rec(Node *node, FILE *stream_out, FileFormat format, char *command, int path_id, const char **options) {
 	OperandsNode *operandNode;
 	switch (node->type) {
 		case PipeNode_T:
@@ -159,6 +155,6 @@ void collect_and_print_results_rec(Node *node, FILE *stream_out, FileFormat form
 
 void collect_and_print_results(Node *node, FILE *stream_out, FileFormat format, char *command, char *options_string) {
 	HASH = hash(command);
-	char **options = parse_options(options_string);
+	const char **options = parse_options(options_string);
 	collect_and_print_results_rec(node,stream_out,format,command,0,options);
 }

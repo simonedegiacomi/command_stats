@@ -2,8 +2,7 @@
 #include "parse.h"
 #include "execute.h"
 #include "wire.h"
-
-
+#include "collect_results.h"
 
 
 
@@ -16,7 +15,6 @@ int main (int argc, char *argv[]) {
 	const char *input = argv[1];
     initialize_parser();
 
-	const char *input = argv[1];
 
 	Node *command_tree = create_tree_from_string(input);
 	printf("[RUN] Parsed!\n");
@@ -32,6 +30,15 @@ int main (int argc, char *argv[]) {
 
 	printf("[RUN] Done!\n");
 
+	/*const char **options = parse_options("exit_code,usner_cpu_time");
+	if (options != NULL) {
+		for (int i = 0; i < 2; i++) {
+			printf("%s\n", options[i]);
+		}
+	} else {
+		printf("NO options\n");
+	}*/
+	
 
 	return 0;
 }
