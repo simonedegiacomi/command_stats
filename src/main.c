@@ -23,6 +23,8 @@ void print_help();
 
 
 int main (int argc, char *argv[]) {
+	enable_logging();
+
 	// Parse tool arguments
 	Preferences *preferences = parse_preferences(argc, argv);
 	if (preferences->print_help) {
@@ -33,10 +35,9 @@ int main (int argc, char *argv[]) {
 	//TODO: Controlla se può scrivere il file di log, e lo crea se non esiste
 	//TODO: Controllo se il logger è in esecuzione, altrimenti lo avvio
 
-	const char *command = argv[argc - 1];
-
 
 	// Parse command
+	// TODO: Decidere se inizializzare esplicitamente il parser
     initialize_parser();
 	const char *input = argv[1];
 	Node *command_tree = create_tree_from_string(input);
@@ -74,7 +75,10 @@ Preferences * parse_preferences(int argc, char *argv[]) {
             } else if (strcmp(argv[i], "CSV") == 0) {
                 preferences->format = CSV;
             }
-		}
+		} else if (strcmp(argv[i], "--verbose") == 0) {
+            enable_logging();
+        }
+
 	}
 
 	return preferences;
@@ -89,4 +93,5 @@ void print_help () {
 	printf("\t--log_file\tSpecify log file path;\n");
 	printf("\t--format\tChoose output format (TXT or CSV);\n");
 	printf("\t--options\tChoose what to include in the log file;\n");
+	printf("\t--verbose\tEnable logging of the tool;\n");
 }

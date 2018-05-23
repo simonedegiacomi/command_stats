@@ -127,7 +127,6 @@ Node * create_tree_from_string (const char *raw_string) {
         SplitResult *pieces     = create_split_for_operator(string, entry->compiled_separator);
 
         if (entry->single_split || pieces->count > 1) {
-            printf("Delimiter: %s\n", entry->separator_regex);
             parsed = entry->handler(pieces);
         }
 

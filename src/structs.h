@@ -66,6 +66,7 @@ typedef struct Stream {
 
 typedef struct ExecutionResult {
     // TODO: Choose between REALTIME and MONOTONIC
+    BOOL                execution_failed;
     long                start_time;
     long                end_time;
     int                 exit_code;
@@ -104,5 +105,10 @@ Stream **       wrap_stream_into_array  (Stream *stream);
 
 int count_executables_in_tree (Node *node);
 int count_max_appender_file_descriptors(Node *node);
+
+
+BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father);
+Node * find_next_executable_in_operands(Node *father, Node *executed_child);
+BOOL is_operand_node (Node *node);
 
 #endif

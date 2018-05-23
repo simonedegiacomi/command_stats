@@ -45,11 +45,11 @@ void print_executable_node_in_txt(Node *node, FILE *stream_out, char *command, i
 		}
 		if (!strcmp(option, "user_cpu_time") || options == NULL) {
 			fprintf(stream_out, "User CPU time: %ld.%06ld\n", result->user_cpu_time_used.tv_sec,
-					result->user_cpu_time_used.tv_usec);
+					(long) result->user_cpu_time_used.tv_usec);
 		}
 		if (!strcmp(option, "system_cpu_time") || options == NULL) {
 			fprintf(stream_out, "System CPU time: %ld.%06ld\n", result->system_cpu_time_used.tv_sec,
-					result->system_cpu_time_used.tv_usec);
+					(long) result->system_cpu_time_used.tv_usec);
 		}
 		if (!strcmp(option, "clock_time") || options == NULL) {
 			fprintf(stream_out, "Clock time: %ld, ", result->clock_time);
@@ -88,11 +88,11 @@ void print_executable_node_in_csv(Node *node, FILE *stream_out, char *command, i
 			fprintf(stream_out, "%d, ", result->exit_code);
 		}
 		if (!strcmp(option, "user_cpu_time") || options == NULL) {
-			fprintf(stream_out, "%ld.%06ld, ", result->user_cpu_time_used.tv_sec, result->user_cpu_time_used.tv_usec);
+			fprintf(stream_out, "%ld.%06ld, ", result->user_cpu_time_used.tv_sec, (long) result->user_cpu_time_used.tv_usec);
 		}
 		if (!strcmp(option, "system_cpu_time") || options == NULL) {
 			fprintf(stream_out, "%ld.%06ld, ", result->system_cpu_time_used.tv_sec,
-					result->system_cpu_time_used.tv_usec);
+					(long) result->system_cpu_time_used.tv_usec);
 		}
 		if (!strcmp(option, "clock_time") || options == NULL) {
 			fprintf(stream_out, "%ld, ", result->clock_time);
@@ -104,13 +104,13 @@ void print_executable_node_in_csv(Node *node, FILE *stream_out, char *command, i
 
 }
 
-void print_executable_node(Node *node, FILE *stream_out, FileFormat format, char *command, int path_id, char **options) {
+void print_executable_node(Node *node, FILE *stream_out, FileFormat format, char *command, int path_id, SplitResult *options) {
 	switch (format) {
 		case TXT:
-			print_executable_node_in_txt(node,stream_out,command,path_id,options);
+			print_executable_node_in_txt(node, stream_out, command, path_id, options);
 			break;
 		case CSV:
-			print_executable_node_in_csv(node,stream_out,command,path_id,options);
+			print_executable_node_in_csv(node, stream_out, command, path_id, options);
 			break;
 	}
 }

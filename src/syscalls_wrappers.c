@@ -3,23 +3,9 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <sys/ipc.h>
+#include <unistd.h>
 
 #include "syscalls_wrappers.h"
-
-void log(const char *format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stderr, format, ap);
-	va_end(ap);
-}
-
-void program_fail(const char *format, ...) {
-	va_list ap;
-	va_start(ap, format);
-	log(format, ap);
-	va_end(ap);
-	exit(1);
-}
 
 
 void syscall_fail(const char *message) {
