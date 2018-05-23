@@ -8,6 +8,7 @@
 void syscall_fail(const char *message);
 int my_open(const char *pathname, int flags);
 char *my_read(int fd);
+ssize_t my_write(int fd, void *buffer, size_t bytes_to_write);
 
 /* ***** MESSAGE QUEUES ***** */
 key_t my_ftok(const char *pathname, int proj_id);

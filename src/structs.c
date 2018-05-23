@@ -78,7 +78,7 @@ int count_max_appender_file_descriptors(Node *node) {
     OperandsNode *operands = &node->value.operands;
     int sum = 0;
     if (node->type != PipeNode_T) {
-        sum += operands->count + 1
+        sum += 2 * operands->count + 2;
     }
     int i;
     for (i = 0; i < operands->count; i++) {

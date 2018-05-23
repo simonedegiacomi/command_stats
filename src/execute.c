@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <sys/errno.h>
 #include "execute.h"
+#include "syscalls_wrappers.h"
 
 
 typedef enum StreamDirection {
@@ -41,6 +42,8 @@ void handle_operands_node_execution_completed (Node *operands_node, Node *comple
 
 
 /** End of private function declaration */
+
+static const int APPENDER_BUFFER_SIZE = 1024;
 
 
 /*
@@ -89,6 +92,7 @@ void execute (Node *node) {
 
     remove_signal_handler();
     destroy_appender_fds_collector();
+    print_log("[EXECUTE] Execution terminated\n");
 }
 
 
@@ -275,8 +279,12 @@ void init_appender (Appender *appender) {
     if (fork_res < 0) {
         // TODO: Handle error
     } else if (fork_res > 0) {
-        close(appender->to->file_descriptor);
-        open_appender_fds[actually_open_appender_fds++] = appender->to->options.pipe->descriptors[READ_FROM_PIPE];
+        if (appender->to->file_descriptor != STDOUT_FILENO) {
+            close(appender->to->file_descriptor);
+        }
+        if (appender->to->type == PipeStream_T) {
+            close(appender->to->options.pipe->descriptors[WRITE_INTO_PIPE]);
+        }
 
         for (i = 0; i < appender->from_count; i++) {
             // Questo dovrebbe essere per forza una pipe
@@ -284,6 +292,7 @@ void init_appender (Appender *appender) {
 
             open_appender_fds[actually_open_appender_fds++] = appender->from[i]->options.pipe->descriptors[WRITE_INTO_PIPE];
         }
+
         // father
         return;
     } else {
@@ -303,16 +312,16 @@ void run_appender_main (Appender *appender) {
         close(appender->from[i]->options.pipe->descriptors[WRITE_INTO_PIPE]);
     }
 
-
-    char buffer[1024];
+    
     for (i = 0; i < appender->from_count; i++) {
         print_log("[APPENDER] Reading from node %d of %d ...\n", i, appender->from_count);
-        // TODO: Quando cambiamo nodo dobbiamo fare qualcosa?
         ssize_t read_res;
         do {
-            read_res = read(appender->from[i]->file_descriptor, buffer, 1024);
+            char buffer[APPENDER_BUFFER_SIZE];
+            read_res = read(appender->from[i]->file_descriptor, buffer,
+                            APPENDER_BUFFER_SIZE);
             if (read_res > 0) {
-                write(appender->to->file_descriptor, buffer, (size_t) read_res);
+                my_write(appender->to->file_descriptor, buffer, (size_t) read_res);
             }
         } while (read_res > 0); // TODO: Handle error (-1) and EOF (0)
         close(appender->from[i]->file_descriptor);
@@ -368,7 +377,7 @@ void handle_operands_node_execution_completed (Node *operands_node, Node *comple
     switch (operands_node->type) {
         case AndNode_T:
             if (exited_correctly && has_next) {
-                run_execute_executable_child(next);
+                execute_async(next);
             } else if (exited_correctly) {
                 operands_node->result->exit_code = 0;
             } else {
@@ -380,7 +389,7 @@ void handle_operands_node_execution_completed (Node *operands_node, Node *comple
             if (exited_correctly) {
                 operands_node->result->exit_code = 0;
             } else if (has_next) {
-                run_execute_executable_child(next);
+                execute_async(next);
             } else {
                 operands_node->result->exit_code = completed->result->exit_code;
             }
@@ -388,7 +397,7 @@ void handle_operands_node_execution_completed (Node *operands_node, Node *comple
 
         case SemicolonNode_T:
             if (has_next) {
-                run_execute_executable_child(next);
+                execute_async(next);
             } else {
                 operands_node->result->exit_code = completed->result->exit_code;
             }

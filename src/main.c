@@ -23,7 +23,6 @@ void print_help();
 
 
 int main (int argc, char *argv[]) {
-	enable_logging();
 
 	// Parse tool arguments
 	Preferences *preferences = parse_preferences(argc, argv);
@@ -39,7 +38,7 @@ int main (int argc, char *argv[]) {
 	// Parse command
 	// TODO: Decidere se inizializzare esplicitamente il parser
     initialize_parser();
-	const char *input = argv[1];
+	const char *input = argv[argc - 1];
 	Node *command_tree = create_tree_from_string(input);
 
 

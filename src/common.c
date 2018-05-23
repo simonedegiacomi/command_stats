@@ -21,7 +21,7 @@ void print_log(const char *format, ...) {
     if (log_enabled) {
         va_list ap;
         va_start(ap, format);
-        vfprintf(stderr, format, ap);
+        vfprintf(stdout, format, ap);
         va_end(ap);
     }
 }
