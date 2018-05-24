@@ -40,10 +40,10 @@ typedef struct ExecutionResult {
     BOOL                execution_failed;
     long                start_time;
     long                end_time;
+    long                total_time;
     int                 exit_code;
     struct timeval      user_cpu_time_used;
     struct timeval      system_cpu_time_used;
-    long                clock_time;
     long                maximum_resident_set_size;
 } ExecutionResult;
 
@@ -82,5 +82,7 @@ BOOL is_operand_node (Node *node);
 int count_max_appender_file_descriptors(Node *node);
 
 void remove_node_from_operands(Node *operands_node, Node *to_remove);
+
+long get_total_time(long start, long end);
 
 #endif

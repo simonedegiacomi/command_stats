@@ -13,6 +13,4 @@ typedef enum FileFormat {
 
 void collect_and_print_results(Node *node, int stream_fd, FileFormat format, const char *command, const char *options_string);
 
-
-
 #endif
