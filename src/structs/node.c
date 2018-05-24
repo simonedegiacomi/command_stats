@@ -151,3 +151,7 @@ void remove_node_from_operands(Node *operands_node, Node *to_remove) {
     operands->count--;
 }
 
+
+long get_total_time(long start, long end) {
+    return end - start;
+}
