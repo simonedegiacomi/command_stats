@@ -6,11 +6,9 @@
 #include "collect_results/collect_results.h"
 #include "daemon/daemon.h"
 #include "daemon/daemon_socket.h"
-#include "common/syscalls_wrappers.h"
 
-// prova
 
-const char *DEFAULT_LOG_PATH		= "/tmp/SO_project_log.txt";
+const char *DEFAULT_LOG_PATH		= "/tmp/SO_project.log";
 const char *DEFAULT_LOG_OPTIONS 	= "pid";
 
 
@@ -39,7 +37,7 @@ int main (int argc, char *argv[]) {
     start_daemon();
 
     if (preferences->stop_daemon) {
-        //stop_daemon();
+        stop_daemon();
         exit(0);
     }
 

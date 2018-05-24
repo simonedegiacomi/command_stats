@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -14,6 +13,7 @@
 #include "daemon_common.h"
 #include "daemon.h"
 #include "daemonize.h"
+#include "daemon_socket.h"
 
 
 void run_daemon_main();
@@ -50,8 +50,9 @@ void start_daemon() {
 void run_daemon_main() {
 	key_t message_queue_key = my_ftok(lock_file_path, getpid());
 	int message_queue_id = my_msgget(message_queue_key, 0666 | IPC_CREAT);
-	
+
 	signal(SIGINT, on_interrupt_signal);
+	signal(SIGTERM, on_interrupt_signal);
 	
 	my_mkfifo(stats_fifo_path, 0666);
 	
@@ -103,4 +104,8 @@ void finalize_daemon(int message_queue_id) {
 	my_unlink(lock_file_path);
 }
 
+
+void stop_daemon() {
+	my_kill(read_daemon_pid(), SIGINT);
+}
 
