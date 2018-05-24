@@ -8,6 +8,8 @@
 #include "daemon/daemon_socket.h"
 #include "common/syscalls_wrappers.h"
 
+// prova
+
 const char *DEFAULT_LOG_PATH		= "/tmp/SO_project_log.txt";
 const char *DEFAULT_LOG_OPTIONS 	= "pid";
 
