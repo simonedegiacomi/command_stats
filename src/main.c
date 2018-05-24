@@ -10,10 +10,11 @@ const char *DEFAULT_LOG_OPTIONS 	= "./log.txt";
 
 
 typedef struct Preferences {
-	BOOL print_help;
-	const char *log_file_path;
-	const char *log_options;
-    FileFormat format;
+	BOOL        print_help;
+    BOOL        stop_daemon;
+	const char  *log_file_path;
+	const char  *log_options;
+    FileFormat  format;
 } Preferences;
 
 Preferences * parse_preferences(int argc, char *argv[]);
@@ -59,6 +60,8 @@ Preferences * parse_preferences(int argc, char *argv[]) {
 		if (strcmp(argv[i], "--help") == 0) {
 			preferences->print_help 	= TRUE;
 		} else if (strcmp(argv[i], "--log_file") == 0 && (i + 1) < argc) {
+
+            // TODO: Transform in absolute if needed
 			preferences->log_file_path 	= argv[++i];
 		} else if (strcmp(argv[i], "--options") == 0 && (i + 1) < argc) {
 			preferences->log_options 	= argv[++i];
@@ -71,6 +74,8 @@ Preferences * parse_preferences(int argc, char *argv[]) {
             }
 		} else if (strcmp(argv[i], "--verbose") == 0) {
             enable_logging();
+        } else if (strcmp(argv[i], "--stop_daemon")) {
+            preferences->stop_daemon = TRUE;
         }
 
 	}
@@ -87,5 +92,6 @@ void print_help () {
 	printf("\t--log_file\tSpecify log file path;\n");
 	printf("\t--format\tChoose output format (TXT or CSV);\n");
 	printf("\t--options\tChoose what to include in the log file;\n");
-	printf("\t--verbose\tEnable logging of the tool;\n");
+    printf("\t--verbose\tEnable logging of the tool;\n");
+    printf("\t--stop_daemon\tStops the writer daemon if running;\n");
 }

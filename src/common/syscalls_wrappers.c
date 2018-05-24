@@ -41,8 +41,8 @@ char *my_read(int fd) {
 	return str;
 }
 
-ssize_t my_write(int fd, void *buffer, size_t bytes_to_write) {
-	ssize_t res = write(fd, buffer, bytes_to_write);
+ssize_t my_write(int fd, void *buffer, size_t count) {
+	ssize_t res = write(fd, buffer, count);
 	if (res == -1) {
 		program_fail("[APPENDER] Can't write to output or receiving node, exiting.\n");
 	}

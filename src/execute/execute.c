@@ -316,8 +316,7 @@ void run_appender_main (Appender *appender) {
         ssize_t read_res;
         do {
             char buffer[APPENDER_BUFFER_SIZE];
-            read_res = read(appender->from[i]->file_descriptor, buffer,
-                            APPENDER_BUFFER_SIZE);
+            read_res = read(appender->from[i]->file_descriptor, buffer, sizeof(buffer));
             if (read_res > 0) {
                 my_write(appender->to->file_descriptor, buffer, (size_t) read_res);
             }
