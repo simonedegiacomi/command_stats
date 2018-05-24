@@ -18,6 +18,10 @@ void enable_logging () {
     log_enabled = TRUE;
 }
 
+BOOL is_logging_enabled() {
+	return log_enabled;
+}
+
 void print_log(const char *format, ...) {
     if (log_enabled) {
         va_list ap;
