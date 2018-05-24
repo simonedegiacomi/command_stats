@@ -13,12 +13,6 @@ const char *possible_options[] = {"exit_code", "user_cpu_time", "system_cpu_time
 
 
 SplitResult * parse_options(const char *options_string) {
-	const regex_t * compiled 	= compile_regex(",");
-	SplitResult *split 			= split_string(options_string, compiled);
-
-
-
-SplitResult * parse_options(char *options_string) {
 	const regex_t * compiled = compile_regex(",");
 	SplitResult *split = split_string(options_string, compiled);
 	regfree((regex_t *) compiled);
