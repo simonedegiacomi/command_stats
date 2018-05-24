@@ -1,7 +1,8 @@
-#include <unistd.h>
-#include <sys/time.h>
-#include <evdns.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdarg.h>
 #include "common.h"
 
 
@@ -33,4 +34,10 @@ void program_fail(const char *format, ...) {
     va_end(ap);
     exit(1);
 }
+
+void syscall_fail(const char *message) {
+	perror(message);
+	exit(1);
+}
+
 
