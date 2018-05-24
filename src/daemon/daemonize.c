@@ -4,13 +4,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "../common/common.h"
 
 int daemonize() {
 	pid_t pid, sid;
 	int fd;
 
 	/* already a daemon */
-	if (getppid() == 1) return;
+	if (getppid() == 1) {
+		return 1;
+	}
 
 	pid = fork();
 	if (pid < 0) {

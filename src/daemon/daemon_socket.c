@@ -49,11 +49,7 @@ int obtain_log_fd(const char *log_path) {
 		//pause();
 	}
 	print_log(" finally!\n");
-	
-	
-	
-	char *statistics = "statisticheee";
-	printf("Statistiche inviate: %s\n", statistics);
+
 
 	int stats_fifo_fd = my_open(stats_fifo_path, O_WRONLY);
 	

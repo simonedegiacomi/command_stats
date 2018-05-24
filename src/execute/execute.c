@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <stdlib.h>
 #include <signal.h>
 #include "execute.h"

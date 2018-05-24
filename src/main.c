@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include "parse/parse.h"
 #include "execute/execute.h"
 #include "collect_results/collect_results.h"
+#include "daemon/daemon.h"
+#include "daemon/daemon_socket.h"
+#include "common/syscalls_wrappers.h"
 
-const char *DEFAULT_LOG_PATH		= "./log.txt";
-const char *DEFAULT_LOG_OPTIONS 	= "./log.txt";
+const char *DEFAULT_LOG_PATH		= "/tmp/SO_project_log.txt";
+const char *DEFAULT_LOG_OPTIONS 	= "pid";
 
 
 typedef struct Preferences {
@@ -32,8 +34,12 @@ int main (int argc, char *argv[]) {
 		exit(0);
 	}
 
-	//TODO: Controlla se può scrivere il file di log, e lo crea se non esiste
-	//TODO: Controllo se il logger è in esecuzione, altrimenti lo avvio
+    start_daemon();
+
+    if (preferences->stop_daemon) {
+        //stop_daemon();
+        exit(0);
+    }
 
 
 	// Parse command
@@ -41,17 +47,22 @@ int main (int argc, char *argv[]) {
     initialize_parser();
 	const char *input = argv[argc - 1];
 	Node *command_tree = create_tree_from_string(input);
+    print_log("[RUN] Command successfully parsed\n");
 
 	// Execute the command
     execute(command_tree);
 
-	// TODO: Invio statistiche al logger
+
+    int log_fd = obtain_log_fd(preferences->log_file_path);
+    collect_and_print_results(command_tree, log_fd, preferences->format, input, preferences->log_options);
+
 	return command_tree->result->exit_code;
 }
 
 Preferences * parse_preferences(int argc, char *argv[]) {
 	Preferences *preferences 		= malloc(sizeof(Preferences));
-	preferences->print_help 		= FALSE;
+    preferences->print_help 		= FALSE;
+    preferences->stop_daemon 		= FALSE;
 	preferences->log_file_path 		= DEFAULT_LOG_PATH;
 	preferences->log_options 		= DEFAULT_LOG_OPTIONS;
 
@@ -74,7 +85,7 @@ Preferences * parse_preferences(int argc, char *argv[]) {
             }
 		} else if (strcmp(argv[i], "--verbose") == 0) {
             enable_logging();
-        } else if (strcmp(argv[i], "--stop_daemon")) {
+        } else if (strcmp(argv[i], "--stop_daemon") == 0) {
             preferences->stop_daemon = TRUE;
         }
 

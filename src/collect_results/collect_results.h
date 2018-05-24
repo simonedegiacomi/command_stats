@@ -11,7 +11,7 @@ typedef enum FileFormat {
 } FileFormat;
 
 
-void collect_and_print_results(Node *node, FILE *stream_out, FileFormat format, char *command, char *options_string);
+void collect_and_print_results(Node *node, int stream_fd, FileFormat format, const char *command, const char *options_string);
 
 
 
