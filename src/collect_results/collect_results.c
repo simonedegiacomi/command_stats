@@ -153,20 +153,15 @@ void print_executable_node(Node *node, FILE *stream_out, FileFormat format, cons
 
 
 void collect_and_print_results_rec(Node *node, FILE *stream_out, FileFormat format, const char *command, int path_id, SplitResult *options) {
-	OperandsNode *operandNode;
-	switch (node->type) {
-		case PipeNode_T:
-		case AndNode_T:
-		case OrNode_T:
-		case SemicolonNode_T:
-			operandNode = &(node->value.operands);
-			for (int i = 0; i < operandNode->count; i++) {
-				collect_and_print_results_rec(operandNode->nodes[i],stream_out,format,command,path_id,options);
-			}
-			break;
-		case ExecutableNode_T:
-			print_executable_node(node,stream_out,format,command,path_id+1,options);
-			break;
+
+	if (is_operand_node(node)) {
+		OperandsNode *operandNode;
+		operandNode = &(node->value.operands);
+		for (int i = 0; i < operandNode->count; i++) {
+			collect_and_print_results_rec(operandNode->nodes[i],stream_out,format,command,path_id,options);
+		}
+	} else {
+		print_executable_node(node,stream_out,format,command,path_id+1,options);
 	}
 	
 }

@@ -11,7 +11,7 @@
 // prova
 
 const char *DEFAULT_LOG_PATH		= "/tmp/SO_project_log.txt";
-const char *DEFAULT_LOG_OPTIONS 	= "pid";
+const char *DEFAULT_LOG_OPTIONS 	= "exit_code";
 
 
 typedef struct Preferences {
