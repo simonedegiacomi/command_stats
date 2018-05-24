@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <regex.h>
 #include "parse.h"
-#include "my_regex.h"
-
+#include "../common/my_regex.h"
+#include "builtin.h"
 
 
 SplitResult * create_split_for_operator(const char *string, const regex_t *separator);
@@ -114,7 +114,15 @@ const char * remove_brackets_if_alone(const char *str);
 
 SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, const char *string);
 
+Node * create_node_from_string(const char *raw_string);
+
 Node * create_tree_from_string (const char *raw_string) {
+    Node *tree = create_node_from_string(raw_string);
+    apply_builtin(tree);
+    return tree;
+}
+
+Node * create_node_from_string(const char *raw_string) {
     initialize_parser();
 
     RedirectSplit   *string_and_redirects   = create_split_command_from_redirect(raw_string);
@@ -127,7 +135,6 @@ Node * create_tree_from_string (const char *raw_string) {
         SplitResult *pieces     = create_split_for_operator(string, entry->compiled_separator);
 
         if (entry->single_split || pieces->count > 1) {
-            printf("Delimiter: %s\n", entry->separator_regex);
             parsed = entry->handler(pieces);
         }
 
@@ -367,7 +374,7 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
 
     int i;
     for (i = 0; i < pieces->count; i++) {
-        pipe->nodes[i] = create_tree_from_string(pieces->sub_strings[i]);
+        pipe->nodes[i] = create_node_from_string(pieces->sub_strings[i]);
     }
 
     return node;
@@ -382,7 +389,7 @@ Node * create_operands_from_string (SplitResult *pieces, NodeType type) {
 
     int i = 0;
     for (i = 0; i < andNode->count; i++) {
-        andNode->nodes[i] = create_tree_from_string(pieces->sub_strings[i]);
+        andNode->nodes[i] = create_node_from_string(pieces->sub_strings[i]);
     }
 
     return node;

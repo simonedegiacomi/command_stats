@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "my_assert.h"
-#include "../src/wire.h"
-#include "../src/common.h"
-#include "../src/structs.h"
+#include "../src/parse/builtin.h"
 
+// TODO: add test for cd
 
 int pipe(int fds[]) {
     static int count = 3;
@@ -39,7 +38,7 @@ void should_wire_a_single_node_tree_to_std() {
             }
     };
 
-    wire(&root);
+    apply_builtin(&root);
 
     assert_std_stream(root.std_out, STDOUT_FILENO);
     assert_std_stream(root.std_in, STDIN_FILENO);
@@ -59,7 +58,7 @@ void should_wire_a_pipe() {
             }
     };
 
-    wire(&pipe);
+    apply_builtin(&pipe);
 
     assert_std_stream(pipe.std_out, STDOUT_FILENO);
     assert_std_stream(pipe.std_in, STDIN_FILENO);
@@ -84,7 +83,7 @@ void should_wire_two_pipes () {
             }
     };
 
-    wire(&pipe);
+    apply_builtin(&pipe);
 
     assert_std_stream(pipe.std_out, STDOUT_FILENO);
     assert_std_stream(pipe.std_in, STDIN_FILENO);
@@ -109,7 +108,7 @@ void should_wire_operands () {
             }
     };
 
-    wire(&and);
+    apply_builtin(&and);
 
     assert_std_stream(and.std_in, STDIN_FILENO);
     assert_std_stream(true->std_in, STDIN_FILENO);
@@ -122,19 +121,25 @@ void should_wire_operands () {
     assert_pipe_connected(false->std_out, concat->from[1]);
 }
 
-void run_wire_tests() {
+void should_apply_cd () {
+
+}
+
+void run_builtin_tests() {
     printf("[WIRE TEST] Start tests\n");
     should_wire_a_single_node_tree_to_std();
     should_wire_a_pipe();
     should_wire_two_pipes();
     should_wire_operands();
+
+    should_apply_cd();
     printf("[WIRE TEST] All test passed\n");
 }
 
 #ifndef MAIN_TESTS
 
 int main(int argc, char *argv[]) {
-    run_wire_tests();
+    run_builtin_tests();
     return 0;
 }
 

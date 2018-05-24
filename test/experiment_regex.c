@@ -2,7 +2,7 @@
 #include <regex.h>
 #include <memory.h>
 #include "my_assert.h"
-#include "../src/common.h"
+#include "../src/common/common.h"
 
 void should_count_or_occurrences () {
 	char *command 	= "true || false || true";
