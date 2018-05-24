@@ -25,6 +25,16 @@ void on_continue_signal(int sig) {
 }
 
 
+struct flock get_flock_for_lock() {
+    return (struct flock){
+        .l_start    = 0,
+        .l_len      = 0,
+        .l_type     = F_WRLCK,
+        .l_whence   = SEEK_SET
+    };
+}
+
+
 int obtain_log_fd(const char *log_path) {
 	pid_t daemon_pid = read_daemon_pid();
 	print_log("[DAEMON_SOCKET] Daemon is running with pid %d\n", daemon_pid);
@@ -59,20 +69,26 @@ int obtain_log_fd(const char *log_path) {
 
 
 pid_t read_daemon_pid() {
-	int res, attempts;
-	pid_t daemon_pid = - 1;
-	for (attempts = 0; attempts < MAX_ATTEMPTS && res != EOF; attempts++) {
-		FILE *f = fopen(pid_file_path, "r");
 
-		if (f != NULL) {
-			res = fscanf(f, "%d", &daemon_pid);
-			fclose(f);
-		}
+	int attempts;
+    struct flock lock = get_flock_for_lock();
+    pid_t daemon_pid = - 1;
 
-		if (daemon_pid == -1){
-			print_log("[RUN] Can't read daemon pid, retry after 1s\n");
-			sleep(1);
-		}
+    for (attempts = 0; attempts < MAX_ATTEMPTS && daemon_pid == -1; attempts++) {
+
+        int lock_fd = open(lock_file_path, O_RDONLY);
+
+        if (lock_fd != -1) {
+            lock.l_pid = -1;
+            int res = fcntl(lock_fd, F_GETLK, &lock);
+            daemon_pid = lock.l_pid;
+            my_close(lock_fd);
+        }
+
+        if (daemon_pid == -1) {
+            print_log("[RUN] Can't read daemon pid, retry after 1s\n");
+            sleep(1);
+        }
 	}
 
 	if (daemon_pid == -1) {

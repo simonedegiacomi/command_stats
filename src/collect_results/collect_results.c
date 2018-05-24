@@ -6,10 +6,19 @@
 
 
 
+
 // TODO: Possiamo rimuovere queste variabili globali?
 BOOL set_csv_header = FALSE;
 long HASH;
 
+
+FileFormat format_from_string (const char* format_string) {
+	if (strcmp(format_string, "CSV") == 0) {
+		return CSV;
+	} else {
+		return TXT;
+	}
+}
 
 BOOL check_option_is_valid(const char *option) {
 	const char options[9][255] = {"exit_code", "execution_failed", "start_time", "end_time", "total_time", "user_cpu_time", "system_cpu_time", "maximum_resident_set_size", "pid"};
@@ -165,7 +174,8 @@ void collect_and_print_results_rec(Node *node, FILE *stream_out, FileFormat form
 	if (is_operand_node(node)) {
 		OperandsNode *operandNode;
 		operandNode = &(node->value.operands);
-		for (int i = 0; i < operandNode->count; i++) {
+        int i;
+		for (i = 0; i < operandNode->count; i++) {
 			collect_and_print_results_rec(operandNode->nodes[i],stream_out,format,command,path_id,options);
 		}
 	} else {

@@ -10,6 +10,7 @@ typedef enum FileFormat {
 	CSV
 } FileFormat;
 
+FileFormat format_from_string (const char* format_string);
 
 void collect_and_print_results(Node *node, int stream_fd, FileFormat format, const char *command, const char *options_string);
 

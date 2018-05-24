@@ -18,7 +18,6 @@ typedef struct Message {
 
 
 static const char *lock_file_path = "/tmp/SO_project.lock";
-static const char *pid_file_path = "/tmp/SO_project.pid";
 static const char *stats_fifo_path = "/tmp/SO_project.fifo";
 
 

@@ -18,7 +18,6 @@
 
 
 void run_daemon_main();
-void write_daemon_pid();
 int initialize_daemon();
 void finalize_daemon(int message_queue_id);
 
@@ -48,12 +47,8 @@ void acquire_lock_or_exit() {
         syscall_fail(lock_file_path);
     }
 
-    struct flock lock = {
-        .l_start    = 0,
-        .l_len      = 0,
-        .l_type     = F_WRLCK,
-        .l_whence   = SEEK_SET
-    };
+
+    struct flock lock = get_flock_for_lock();
     if (fcntl(lock_fd, F_SETLK, &lock) == -1) {
         print_log("[DAEMON] Another daemon is already running, exiting");
         exit(0);
@@ -106,32 +101,22 @@ void run_daemon_main() {
  */
 int initialize_daemon() {
     acquire_lock_or_exit();
-    write_daemon_pid();
 
     int message_queue_id = get_message_queue_id(getpid());
 
     signal(SIGINT, on_interrupt_signal);
     signal(SIGTERM, on_interrupt_signal);
 
-
+    unlink(stats_fifo_path);
     my_mkfifo(stats_fifo_path, 0666);
     return message_queue_id;
 }
 
 
-void write_daemon_pid() {
-	FILE *f = fopen(pid_file_path, "w");
-    const pid_t daemon_pid = getpid();
-    fprintf(f, "%d", daemon_pid);
-    fclose(f);
-	print_log("[DAEMON] Daemon pid: %d\n", daemon_pid);
-}
-
 void finalize_daemon(int message_queue_id) {
     print_log("[DAEMON] Exiting...\n");
 	my_msgctl(message_queue_id, IPC_RMID, NULL);
 	my_unlink(stats_fifo_path);
-    my_unlink(pid_file_path);
     my_unlink(lock_file_path);
 }
 
