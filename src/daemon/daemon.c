@@ -11,6 +11,7 @@
 
 #include "../common/common.h"
 #include "../common/syscalls_wrappers.h"
+#include "daemon_common.h"
 #include "daemon.h"
 #include "daemonize.h"
 
@@ -21,20 +22,11 @@ void finalize_daemon(int message_queue_id);
 
 
 
-void print_message (Message message) {
-	print_log("\tmessage_type: %ld\n", message.message_type);
-	print_log("\tbooking_info.pid: %d\n", message.booking_info.pid);
-	print_log("\tbooking_info.log_path: %s\n", message.booking_info.log_path);
-}
-
-
-static const char *lock_file_path = "/tmp/SO_project.lock";
-static const char *stats_fifo_path = "/tmp/SO_stats_fifo";
-
 
 BOOL interrupt_signal = FALSE;
 void on_interrupt_signal(int sig) {
 	interrupt_signal = TRUE;
+	print_log("[DAEMON] Signal handler...");
 }
 
 
@@ -90,6 +82,8 @@ void run_daemon_main() {
 		my_close(stats_log_fd);
 		my_close(stats_fifo_fd);
 	}
+	
+	print_log("[DAEMON] Exiting...");
 
 	/* end of the app */
 	finalize_daemon(message_queue_id);
