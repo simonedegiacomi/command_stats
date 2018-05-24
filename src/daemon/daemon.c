@@ -7,6 +7,7 @@
 #include <sys/ipc.h>
 
 #include <signal.h>
+#include <errno.h>
 
 #include "../common/common.h"
 #include "../common/syscalls_wrappers.h"
@@ -17,91 +18,121 @@
 
 
 void run_daemon_main();
-void write_daemon_pid(int lock_file_fd);
+void write_daemon_pid();
+int initialize_daemon();
 void finalize_daemon(int message_queue_id);
-
-
-
 
 BOOL interrupt_signal = FALSE;
 void on_interrupt_signal(int sig) {
 	interrupt_signal = TRUE;
-	print_log("[DAEMON] Signal handler...");
+	print_log("[DAEMON] SIGINT or SIGTERM received\n");
 }
 
 
 void start_daemon() {
-	int lock_file_fd = open(lock_file_path, O_CREAT|O_EXCL|O_RDWR, 0666);
-	
-	if (lock_file_fd != -1) {
-		if (daemonize() == 1) {
-			close(lock_file_fd);
-			return;
-		}
-		
-		// TODO: se il run va a leggere il contenuto del file in questo momento?
-		write_daemon_pid(lock_file_fd);
-		close(lock_file_fd);
-		
-		run_daemon_main();
-	}
+    DaemonizeResult res = daemonize();
+    if (res == FAILED) {
+        program_fail("Can't start daemon");
+    } else if (res == SUCCESS_DAEMON) {
+        run_daemon_main();
+    }
+}
+
+/**
+ *
+ * @return
+ */
+void acquire_lock_or_exit() {
+    int lock_fd = open(lock_file_path, O_CREAT | O_RDWR, 0666);
+    if (lock_fd == -1) {
+        syscall_fail(lock_file_path);
+    }
+
+    struct flock lock = {
+        .l_start    = 0,
+        .l_len      = 0,
+        .l_type     = F_WRLCK,
+        .l_whence   = SEEK_SET
+    };
+    if (fcntl(lock_fd, F_SETLK, &lock) == -1) {
+        print_log("[DAEMON] Another daemon is already running, exiting");
+        exit(0);
+    }
 }
 
 void run_daemon_main() {
-	key_t message_queue_key = my_ftok(lock_file_path, getpid());
-	int message_queue_id = my_msgget(message_queue_key, 0666 | IPC_CREAT);
+    int message_queue_id = initialize_daemon();
 
-	signal(SIGINT, on_interrupt_signal);
-	signal(SIGTERM, on_interrupt_signal);
-	
-	my_mkfifo(stats_fifo_path, 0666);
-	
-	while (!interrupt_signal) {
+    while (!interrupt_signal) {
 		Message message;
-		my_msgrcv(message_queue_id, &message, sizeof(BookingInfo), MESSAGE_TYPE, 0);
-		
-		print_log("[DAEMON] Received message:\n");
-		print_message(message);
-		
-		
-		print_log("[DAEMON] Sending SIGCONT to %d\n", message.booking_info.pid);
-		kill(message.booking_info.pid, SIGCONT);
+		ssize_t res = msgrcv(message_queue_id, &message, sizeof(BookingInfo), MESSAGE_TYPE, 0);
+        if (res == -1 && errno != EINTR) {
+            syscall_fail("Can't receive message from message queue");
+        }
+
+        if (res > 0) {
+            print_log("[DAEMON] Received message:\n");
+            print_message(message);
 
 
-		int stats_fifo_fd = my_open(stats_fifo_path, O_RDONLY);
-		
-		int stats_log_fd = open(message.booking_info.log_path, O_CREAT | O_APPEND | O_WRONLY, 0666);
-		char buffer[1024];
-		ssize_t read_res;
-		do {
-			read_res = read(stats_fifo_fd, buffer, sizeof(buffer));
-			if (read_res > 0) {
-				my_write(stats_log_fd, buffer, (size_t)read_res);
-			}
-		} while (read_res > 0);
-		
-		my_close(stats_log_fd);
-		my_close(stats_fifo_fd);
+            print_log("[DAEMON] Sending SIGCONT to %d\n",
+                      message.booking_info.pid);
+            kill(message.booking_info.pid, SIGCONT);
+
+
+            int stats_fifo_fd = my_open(stats_fifo_path, O_RDONLY);
+
+            int stats_log_fd = open(message.booking_info.log_path,
+                                    O_CREAT | O_APPEND | O_WRONLY, 0666);
+
+            copy_stream(stats_fifo_fd, stats_log_fd);
+
+            my_close(stats_log_fd);
+            my_close(stats_fifo_fd);
+        }
 	}
-	
-	print_log("[DAEMON] Exiting...");
 
-	/* end of the app */
+
 	finalize_daemon(message_queue_id);
-	
 	exit(0);
 }
 
-void write_daemon_pid(int lock_file_fd) {
-	pid_t daemon_pid = getpid();
-	write(lock_file_fd, &daemon_pid, sizeof(daemon_pid));
+/**
+ * Tries to acquire exclusive lock on the lock file and exit if the lock file is
+ * already locked.
+ * If the lock is successfully acquired, writes the daemon pid into the daemon
+ * pid file and initializes the daemon.
+ * @return message queue id from which read BookingInfo from run clients.
+ */
+int initialize_daemon() {
+    acquire_lock_or_exit();
+    write_daemon_pid();
+
+    int message_queue_id = get_message_queue_id(getpid());
+
+    signal(SIGINT, on_interrupt_signal);
+    signal(SIGTERM, on_interrupt_signal);
+
+
+    my_mkfifo(stats_fifo_path, 0666);
+    return message_queue_id;
+}
+
+
+void write_daemon_pid() {
+	FILE *f = fopen(pid_file_path, "w");
+    const pid_t daemon_pid = getpid();
+    fprintf(f, "%d", daemon_pid);
+    fclose(f);
 	print_log("[DAEMON] Daemon pid: %d\n", daemon_pid);
 }
 
 void finalize_daemon(int message_queue_id) {
+    print_log("[DAEMON] Exiting...\n");
 	my_msgctl(message_queue_id, IPC_RMID, NULL);
 	my_unlink(stats_fifo_path);
-	my_unlink(lock_file_path);
+    my_unlink(pid_file_path);
+    my_unlink(lock_file_path);
 }
 
 

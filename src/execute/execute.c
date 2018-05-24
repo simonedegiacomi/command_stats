@@ -5,6 +5,7 @@
 #include <sys/resource.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <stdio.h>
 #include "execute.h"
 #include "../common/syscalls_wrappers.h"
 #include "../structs/node.h"
@@ -79,7 +80,7 @@ void on_execution_failed(int signal, siginfo_t *info, void *context) {
     Node *failed_child;
     BOOL found = find_node_in_tree_with_pid(tree, sender_pid, &failed_child, NULL);
     if (found) {
-        print_log("[EXECUTE] Execution of child %d failed\n", sender_pid);
+        fprintf(stderr, "[EXECUTE] Execution of child %d failed\n", sender_pid);
         failed_child->result->execution_failed = TRUE;
     }
 }
@@ -327,14 +328,9 @@ void run_appender_main (Appender *appender) {
     
     for (i = 0; i < appender->from_count; i++) {
         print_log("[APPENDER] Reading from node %d of %d ...\n", i, appender->from_count);
-        ssize_t read_res;
-        do {
-            char buffer[APPENDER_BUFFER_SIZE];
-            read_res = read(appender->from[i]->file_descriptor, buffer, sizeof(buffer));
-            if (read_res > 0) {
-                my_write(appender->to->file_descriptor, buffer, (size_t) read_res);
-            }
-        } while (read_res > 0); // TODO: Handle error (-1) and EOF (0)
+
+        copy_stream(appender->from[i]->file_descriptor, appender->to->file_descriptor);
+
         close(appender->from[i]->file_descriptor);
     }
     close(appender->to->file_descriptor);

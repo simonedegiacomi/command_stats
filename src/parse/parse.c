@@ -6,6 +6,8 @@
 #include "../common/my_regex.h"
 #include "builtin.h"
 
+/** Private functions and structures declaration */
+void initialize_regexes();
 
 SplitResult * create_split_for_operator(const char *string, const regex_t *separator);
 
@@ -22,7 +24,18 @@ typedef struct RedirectSplit {
 RedirectSplit * create_split_command_from_redirect(const char *str);
 void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_redirects);
 
+const char * remove_brackets_if_alone(const char *str);
+SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, const char *string);
+Node * create_node_from_string(const char *raw_string);
 
+// constructors of the nodes from the split strings
+Node * create_pipe_from_strings			(SplitResult *pieces);
+Node * create_and_from_strings			(SplitResult *pieces);
+Node * create_or_from_strings			(SplitResult *pieces);
+Node * create_semicolon_from_strings	(SplitResult *pieces);
+Node * create_executable_from_string	(SplitResult *pieces);
+
+/** End of private functions and structures declaration */
 
 
 // Entry for the array that describes the priority of the operands.
@@ -39,14 +52,6 @@ typedef struct PriorityMapEntry {
     // Function to construct a node from the split string
     Node *(*handler) (SplitResult*);
 } PriorityMapEntry;
-
-
-// constructors of the nodes from the split strings
-Node * create_pipe_from_strings			(SplitResult *pieces);
-Node * create_and_from_strings			(SplitResult *pieces);
-Node * create_or_from_strings			(SplitResult *pieces);
-Node * create_semicolon_from_strings	(SplitResult *pieces);
-Node * create_executable_from_string	(SplitResult *pieces);
 
 static PriorityMapEntry priority_map[] = {
         {
@@ -85,10 +90,6 @@ static const int operators_count = sizeof(priority_map) / sizeof(PriorityMapEntr
 
 static BOOL parser_initialized = FALSE;
 
-void initialize_regexes();
-
-
-
 void initialize_parser() {
     if (parser_initialized) {
         return;
@@ -108,13 +109,6 @@ void initialize_regexes() {
 
 }
 
-
-const char * remove_brackets_if_alone(const char *str);
-
-
-SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, const char *string);
-
-Node * create_node_from_string(const char *raw_string);
 
 Node * create_tree_from_string (const char *raw_string) {
     Node *tree = create_node_from_string(raw_string);

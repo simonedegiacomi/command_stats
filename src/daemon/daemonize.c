@@ -5,14 +5,15 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "../common/common.h"
+#include "daemonize.h"
 
-int daemonize() {
+DaemonizeResult daemonize() {
 	pid_t pid, sid;
 	int fd;
 
 	/* already a daemon */
 	if (getppid() == 1) {
-		return 1;
+		return FAILED;
 	}
 
 	pid = fork();
@@ -20,7 +21,7 @@ int daemonize() {
 		program_fail("[DAEMON] Can't fork first time");
 	}
 	if (pid > 0) {
-		return 1;
+		return SUCCESS_PARENT;
 	} // keep only child
 
 	sid = setsid();
@@ -53,6 +54,6 @@ int daemonize() {
 	/*resetting File Creation Mask */
 	umask(027); // mask to no more than 750 (complement of 027)
 	
-	return 2;
+	return SUCCESS_DAEMON;
 }
 

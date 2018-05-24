@@ -19,7 +19,6 @@ void wire_pipe_nodes(OperandsNode *operands, Stream *in, Stream *out);
 void wire_operand_nodes(OperandsNode *operands, Stream *in, Stream *out);
 
 Stream *create_std_stream(int direction);
-
 /** End of private function declaration */
 
 

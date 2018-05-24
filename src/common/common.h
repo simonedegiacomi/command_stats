@@ -19,4 +19,7 @@ void print_log(const char *format, ...);
 void program_fail(const char *format, ...);
 void syscall_fail(const char *message);
 
+
+void copy_stream (int from, int to);
+
 #endif

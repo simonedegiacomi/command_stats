@@ -18,7 +18,6 @@ int     my_kill     (pid_t pid, int sig);
 key_t   my_ftok     (const char *pathname, int proj_id);
 int     my_msgget   (key_t key, int msgflg);
 int     my_msgsnd   (int msqid, const void *msgp, size_t msgsz, int msgflg);
-ssize_t my_msgrcv   (int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
 int     my_msgctl   (int msqid, int cmd, struct msqid_ds *buf);
 
 #endif

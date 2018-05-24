@@ -34,12 +34,13 @@ int main (int argc, char *argv[]) {
 		exit(0);
 	}
 
-    start_daemon();
 
     if (preferences->stop_daemon) {
         stop_daemon();
         exit(0);
-    }
+    } else {
+		start_daemon();
+	}
 
 
 	// Parse command
@@ -70,24 +71,29 @@ Preferences * parse_preferences(int argc, char *argv[]) {
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--help") == 0) {
 			preferences->print_help 	= TRUE;
-		} else if (strcmp(argv[i], "--log_file") == 0 && (i + 1) < argc) {
+		} else {
+			BOOL next_argument_exists = (i + 1) < argc;
+			if (strcmp(argv[i], "--log_file") == 0 && next_argument_exists) {
 
-            // TODO: Transform in absolute if needed
-			preferences->log_file_path 	= argv[++i];
-		} else if (strcmp(argv[i], "--options") == 0 && (i + 1) < argc) {
-			preferences->log_options 	= argv[++i];
-		} else if (strcmp(argv[i], "--format") == 0 && (i + 1) < argc) {
-            i++;
-            if (strcmp(argv[i], "TXT") == 0) {
-                preferences->format = TXT;
-            } else if (strcmp(argv[i], "CSV") == 0) {
-                preferences->format = CSV;
-            }
-		} else if (strcmp(argv[i], "--verbose") == 0) {
-            enable_logging();
-        } else if (strcmp(argv[i], "--stop_daemon") == 0) {
-            preferences->stop_daemon = TRUE;
-        }
+                    // TODO: Transform in absolute if needed
+                    preferences->log_file_path 	= argv[++i];
+                } else if (strcmp(argv[i], "--options") == 0 &&
+						   next_argument_exists) {
+                    preferences->log_options 	= argv[++i];
+                } else if (strcmp(argv[i], "--format") == 0 &&
+						   next_argument_exists) {
+                    i++;
+                    if (strcmp(argv[i], "TXT") == 0) {
+                        preferences->format = TXT;
+                    } else if (strcmp(argv[i], "CSV") == 0) {
+                        preferences->format = CSV;
+                    }
+                } else if (strcmp(argv[i], "--verbose") == 0) {
+                    enable_logging();
+                } else if (strcmp(argv[i], "--stop_daemon") == 0) {
+                    preferences->stop_daemon = TRUE;
+                }
+		}
 
 	}
 

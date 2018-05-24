@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <memory.h>
 #include "my_assert.h"
 #include "../src/parse/builtin.h"
+#include "../src/structs/node.h"
 
 // TODO: add test for cd
 
@@ -30,12 +32,12 @@ void assert_pipe_connected(Stream *from, Stream *to) {
 
 void should_wire_a_single_node_tree_to_std() {
     Node root = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "ls"
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "ls"
             }
+        }
     };
 
     apply_builtin(&root);
@@ -49,13 +51,13 @@ void should_wire_a_pipe() {
     Node *wc = create_executable_node("wc");
     Node *nodes[2] = {ls, wc};
     Node pipe = {
-            .type = PipeNode_T,
-            .value = {
-                    .operands = {
-                            .count = 2,
-                            .nodes = nodes
-                    }
+        .type = PipeNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = nodes
             }
+        }
     };
 
     apply_builtin(&pipe);
@@ -74,13 +76,13 @@ void should_wire_two_pipes () {
     Node *wc2 = create_executable_node("wc");
     Node *nodes[3] = {ls, wc1, wc2};
     Node pipe = {
-            .type = PipeNode_T,
-            .value = {
-                    .operands = {
-                            .count = 3,
-                            .nodes = nodes
-                    }
+        .type = PipeNode_T,
+        .value = {
+            .operands = {
+                .count = 3,
+                .nodes = nodes
             }
+        }
     };
 
     apply_builtin(&pipe);
@@ -121,19 +123,59 @@ void should_wire_operands () {
     assert_pipe_connected(false->std_out, concat->from[1]);
 }
 
-void should_apply_cd () {
-
+void should_apply_cd() {
+    Node and = {
+        .type = AndNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = (Node*[]){
+                    &(Node){
+                        .type = ExecutableNode_T,
+                        .value = {
+                            .executable = {
+                                .path = "cd",
+                                .argc = 2,
+                                .argv = (char*[]){"cd", "a"},
+                                .cd = NULL,
+                                .cd_count = 0
+                            }
+                        }
+                    },
+                    &(Node){
+                        .type = ExecutableNode_T,
+                        .value = {
+                            .executable = {
+                                .path = "ls",
+                                .argc = 1,
+                                .argv = (char*[]){"cd"},
+                                .cd = NULL,
+                                .cd_count = 0
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+    
+    apply_builtin(&and);
+    
+    my_assert(and.value.operands.count == 1, "cd should be removed from nodes");
+    ExecutableNode *ls_executable = &and.value.operands.nodes[0]->value.executable;
+    my_assert(ls_executable->cd_count == 1, "should change dir one time");
+    my_assert(strcmp(ls_executable->cd[0], "a") == 0, "wrong target directory");
 }
 
 void run_builtin_tests() {
-    printf("[WIRE TEST] Start tests\n");
+    printf("[BUILTIN TEST] Start tests\n");
     should_wire_a_single_node_tree_to_std();
     should_wire_a_pipe();
     should_wire_two_pipes();
     should_wire_operands();
 
     should_apply_cd();
-    printf("[WIRE TEST] All test passed\n");
+    printf("[BUILTIN TEST] All test passed\n");
 }
 
 #ifndef MAIN_TESTS

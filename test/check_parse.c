@@ -42,38 +42,38 @@ void should_parse_ls_pipe_wc_pipe_wc() {
     lsArgs[0] = "ls";
     lsArgs[1] = "-lah";
     Node ls = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "ls",
-                            .argc = 2,
-                            .argv = lsArgs
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "ls",
+                .argc = 2,
+                .argv = lsArgs
             }
+        }
     };
 
     char **wcArgs = malloc(sizeof(char *));
     wcArgs[0] = "wc";
     Node wc = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "wc",
-                            .argc = 1,
-                            .argv = wcArgs
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "wc",
+                .argc = 1,
+                .argv = wcArgs
             }
+        }
     };
 
     Node *nodes[] = {&ls, &wc, &wc};
     Node expected = {
-            .type = PipeNode_T,
-            .value = {
-                    .operands = {
-                            .count = 3,
-                            .nodes = nodes
-                    }
+        .type = PipeNode_T,
+        .value = {
+            .operands = {
+                .count = 3,
+                .nodes = nodes
             }
+        }
     };
 
     check_tree_equals(&expected, parsed);
@@ -85,25 +85,25 @@ void should_parse_and() {
 
     char *trueNodeArgs[] = {"true"};
     Node trueNode = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "true",
-                            .argc = 1,
-                            .argv = trueNodeArgs
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "true",
+                .argc = 1,
+                .argv = trueNodeArgs
             }
+        }
     };
     Node *nodes[] = {&trueNode, &trueNode};
 
     Node expected = {
-            .type = AndNode_T,
-            .value = {
-                    .operands = {
-                            .count = 2,
-                            .nodes = nodes
-                    }
+        .type = AndNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = nodes
             }
+        }
     };
 
     check_tree_equals(&expected, parsed);
@@ -115,25 +115,25 @@ void should_parse_or() {
 
     char *trueNodeArgs[] = {"true"};
     Node trueNode = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "true",
-                            .argc = 1,
-                            .argv = trueNodeArgs
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "true",
+                .argc = 1,
+                .argv = trueNodeArgs
             }
+        }
     };
     Node *nodes[] = {&trueNode, &trueNode};
 
     Node expected = {
-            .type = OrNode_T,
-            .value = {
-                    .operands = {
-                            .count = 2,
-                            .nodes = nodes
-                    }
+        .type = OrNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = nodes
             }
+        }
     };
 
     check_tree_equals(&expected, parsed);
@@ -145,18 +145,18 @@ void should_parse_semicolon() {
     Node *parsed = create_tree_from_string(input);
 
     Node *nodes[] = {
-            create_executable_node_single_arg("false"),
-            create_executable_node_single_arg("true")
+        create_executable_node_single_arg("false"),
+        create_executable_node_single_arg("true")
     };
 
     Node expected = {
-            .type = SemicolonNode_T,
-            .value = {
-                    .operands = {
-                            .count = 2,
-                            .nodes = nodes
-                    }
+        .type = SemicolonNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = nodes
             }
+        }
     };
 
     check_tree_equals(&expected, parsed);
@@ -168,35 +168,35 @@ void should_parse_parentesis() {
 
     char *trueNodeArgs[] = {"true"};
     Node true_node = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "true",
-                            .argc = 1,
-                            .argv = trueNodeArgs
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "true",
+                .argc = 1,
+                .argv = trueNodeArgs
             }
+        }
     };
     Node *and_operands[] = {&true_node, &true_node};
     Node and_node = {
-            .type = AndNode_T,
-            .value = {
-                    .operands = {
-                            .count = 2,
-                            .nodes = and_operands
-                    }
+        .type = AndNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = and_operands
             }
+        }
     };
 
     Node *or_operands[] = {&and_node, &true_node};
     Node or_node = {
-            .type = OrNode_T,
-            .value = {
-                    .operands = {
-                            .count = 2,
-                            .nodes = or_operands
-                    }
+        .type = OrNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = or_operands
             }
+        }
     };
 
     check_tree_equals(&or_node, parsed);
@@ -207,25 +207,25 @@ void should_parse_redirect() {
     Node *parsed = create_tree_from_string(command);
 
     Stream file_out = {
-            .type = FileStream_T,
-            .options = {
-                    .file = {
-                            .name = "file.txt",
-                            .open_flag = O_CREAT | O_TRUNC | O_WRONLY
-                    }
+        .type = FileStream_T,
+        .options = {
+            .file = {
+                .name = "file.txt",
+                .open_flag = O_CREAT | O_TRUNC | O_WRONLY
             }
+        }
     };
     char *lsNodeArgs[] = {"ls"};
     Node expected = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "ls",
-                            .argc = 1,
-                            .argv = lsNodeArgs
-                    }
-            },
-            .std_out = &file_out
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "ls",
+                .argc = 1,
+                .argv = lsNodeArgs
+            }
+        },
+        .std_out = &file_out
     };
 
     check_tree_equals(&expected, parsed);
@@ -238,34 +238,34 @@ void should_parse_and_inside_brackets_with_pipe() {
 
     char *lsNodeArgs[] = {"ls"};
     Node ls = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "ls",
-                            .argc = 1,
-                            .argv = lsNodeArgs
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "ls",
+                .argc = 1,
+                .argv = lsNodeArgs
             }
+        }
     };
     Node *nodes[] = {&ls, &ls};
     Stream file_out = {
-            .type = FileStream_T,
-            .options = {
-                    .file = {
-                            .name = "file.txt",
-                            .open_flag = O_CREAT | O_TRUNC | O_WRONLY
-                    }
+        .type = FileStream_T,
+        .options = {
+            .file = {
+                .name = "file.txt",
+                .open_flag = O_CREAT | O_TRUNC | O_WRONLY
             }
+        }
     };
     Node expected = {
-            .type = AndNode_T,
-            .value = {
-                    .operands = {
-                            .count = 2,
-                            .nodes = nodes
-                    }
-            },
-            .std_out = &file_out
+        .type = AndNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = nodes
+            }
+        },
+        .std_out = &file_out
     };
 
     check_tree_equals(&expected, parsed);
@@ -278,14 +278,14 @@ void should_parse_near_quotation_marks_as_single_parameter() {
     char *args[] = {"echo", "a bc", "d", "e"};
 
     Node expected = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "echo",
-                            .argc = 4,
-                            .argv = args
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "echo",
+                .argc = 4,
+                .argv = args
             }
+        }
     };
 
     check_tree_equals(&expected, parsed);
@@ -298,14 +298,14 @@ void should_parse_escaped_quotation_marks() {
     char *args[] = {"./run", "echo \"prova\" > file"};
 
     Node expected = {
-            .type = ExecutableNode_T,
-            .value = {
-                    .executable = {
-                            .path = "./run",
-                            .argc = 2,
-                            .argv = args
-                    }
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "./run",
+                .argc = 2,
+                .argv = args
             }
+        }
     };
 
     check_tree_equals(&expected, parsed);
@@ -320,30 +320,30 @@ void should_parse_command_with_useless_brackets () {
         .value = {
             .operands = {
                 .count = 2,
-                .nodes = (Node*[]){
-                    &(Node){
+                .nodes = (Node *[]) {
+                    &(Node) {
                         .type = AndNode_T,
                         .value = {
                             .operands = {
                                 .count = 2,
-                                .nodes = (Node*[]){
-                                    &(Node){
+                                .nodes = (Node *[]) {
+                                    &(Node) {
                                         .type = ExecutableNode_T,
                                         .value = {
                                             .executable = {
                                                 .path = "echo",
                                                 .argc = 2,
-                                                .argv = (char*[]){"echo", "a"}
+                                                .argv = (char *[]) {"echo", "a"}
                                             }
                                         }
                                     },
-                                    &(Node){
+                                    &(Node) {
                                         .type = ExecutableNode_T,
                                         .value = {
                                             .executable = {
                                                 .path = "echo",
                                                 .argc = 2,
-                                                .argv = (char*[]){"echo", "b"}
+                                                .argv = (char *[]) {"echo", "b"}
                                             }
                                         }
                                     }
@@ -351,13 +351,13 @@ void should_parse_command_with_useless_brackets () {
                             }
                         }
                     },
-                    &(Node){
+                    &(Node) {
                         .type = ExecutableNode_T,
                         .value = {
                             .executable = {
                                 .path = "wc",
                                 .argc = 1,
-                                .argv = (char*[]){"wc"}
+                                .argv = (char *[]) {"wc"}
                             }
                         }
                     }

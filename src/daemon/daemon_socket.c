@@ -14,6 +14,8 @@
 #include "daemon_common.h"
 #include "daemon_socket.h"
 
+const int MAX_ATTEMPTS = 3;
+
 pid_t read_daemon_pid();
 
 
@@ -25,10 +27,9 @@ void on_continue_signal(int sig) {
 
 int obtain_log_fd(const char *log_path) {
 	pid_t daemon_pid = read_daemon_pid();
-	print_log("[DAEMON_SOCKET] Daemon is already running with pid %d\n", daemon_pid);
-	
-	key_t message_queue_key = my_ftok(lock_file_path, daemon_pid);
-	int message_queue_id = my_msgget(message_queue_key, 0666 | IPC_CREAT);
+	print_log("[DAEMON_SOCKET] Daemon is running with pid %d\n", daemon_pid);
+
+	int message_queue_id = get_message_queue_id(daemon_pid);
 	
 	signal(SIGCONT, on_continue_signal);
 	
@@ -58,14 +59,25 @@ int obtain_log_fd(const char *log_path) {
 
 
 pid_t read_daemon_pid() {
-	int lock_file_fd = my_open(lock_file_path, O_RDONLY);
-	
-	pid_t daemon_pid;
-	if (read(lock_file_fd, &daemon_pid, sizeof(daemon_pid)) < 1) {
-		syscall_fail("[DAEMON] Unable to read daemon pid from lock file\n");
+	int res, attempts;
+	pid_t daemon_pid = - 1;
+	for (attempts = 0; attempts < MAX_ATTEMPTS && res != EOF; attempts++) {
+		FILE *f = fopen(pid_file_path, "r");
+
+		if (f != NULL) {
+			res = fscanf(f, "%d", &daemon_pid);
+			fclose(f);
+		}
+
+		if (daemon_pid == -1){
+			print_log("[RUN] Can't read daemon pid, retry after 1s\n");
+			sleep(1);
+		}
 	}
-	
-	my_close(lock_file_fd);
+
+	if (daemon_pid == -1) {
+		program_fail("[RUN] Can't read daemon pid\n");
+	}
 	
 	return daemon_pid;
 }

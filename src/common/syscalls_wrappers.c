@@ -91,15 +91,6 @@ int my_msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg) {
     return res;
 }
 
-ssize_t
-my_msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg) {
-    ssize_t res = msgrcv(msqid, msgp, msgsz, msgtyp, msgflg);
-    if (res == -1) {
-        syscall_fail("Can't receive message from message queue");
-    }
-    return res;
-}
-
 int my_msgctl(int msqid, int cmd, struct msqid_ds *buf) {
     int res = msgctl(msqid, cmd, buf);
     if (res == -1) {
