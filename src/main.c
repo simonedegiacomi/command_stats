@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "parse/parse.h"
 #include "execute/execute.h"
 #include "collect_results/collect_results.h"
@@ -45,7 +46,6 @@ int main (int argc, char *argv[]) {
     execute(command_tree);
 
 	// TODO: Invio statistiche al logger
-
 	return command_tree->result->exit_code;
 }
 

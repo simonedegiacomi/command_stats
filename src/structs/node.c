@@ -132,3 +132,22 @@ BOOL is_operand_node (Node *node) {
             || node->type == SemicolonNode_T
             || node->type == PipeNode_T;
 }
+
+
+void remove_node_from_operands(Node *operands_node, Node *to_remove) {
+    OperandsNode *operands = &operands_node->value.operands;
+
+    int i;
+    BOOL removed = FALSE;
+    for (i = 0; i < operands->count; i++) {
+        if (operands->nodes[i] == to_remove) {
+            //destroy_node(operands->nodes[i]);
+
+            removed = TRUE;
+        } else if (removed) {
+            operands->nodes[i - 1] = operands->nodes[i];
+        }
+    }
+    operands->count--;
+}
+

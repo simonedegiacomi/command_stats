@@ -37,12 +37,19 @@ void apply_cd_builtin_r (Node *father, Node *node) {
         int i;
         OperandsNode *operands = &node->value.operands;
         for (i = 0; i < operands->count; i++) {
+            int count = operands->count;
+
             apply_cd_builtin_r(node, operands->nodes[i]);
+
+
+            if (operands->count == (count - 1)) {
+                i--;
+            }
         }
     } else if (node->type == ExecutableNode_T) {
         ExecutableNode *executable = &node->value.executable;
         if (strcmp(executable->path, "cd") == 0 && executable->argc == 2) {
-            //add_cd(executable, executable->argv[1]);
+
 
             if (father != NULL && father->type != PipeNode_T) {
                 Node *brother = node;
@@ -52,6 +59,9 @@ void apply_cd_builtin_r (Node *father, Node *node) {
                         add_cd(&brother->value.executable, executable->argv[1]);
                     }
                 } while (brother != NULL);
+                remove_node_from_operands(father, node);
+            } else {
+                add_cd(executable, executable->argv[1]);
             }
         }
     }
