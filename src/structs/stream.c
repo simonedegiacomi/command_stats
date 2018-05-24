@@ -19,3 +19,9 @@ Stream ** wrap_stream_into_array (Stream *stream) {
 }
 
 
+
+PipeStream *create_pipe() {
+    PipeStream *stream = malloc(sizeof(PipeStream));
+    stream->initialized = FALSE;
+    return stream;
+}

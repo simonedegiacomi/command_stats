@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <sys/ipc.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "syscalls_wrappers.h"
 #include "common.h"

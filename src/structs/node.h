@@ -22,6 +22,9 @@ typedef struct ExecutableNode {
 
     char 	**argv;
     int 	argc;
+
+    char    **cd;
+    int     cd_count;
 } ExecutableNode;
 
 typedef struct OperandsNode {

@@ -4,6 +4,6 @@
 #include "../common/common.h"
 #include "parse.h"
 
-void wire (Node *tree);
+void apply_builtin(Node *tree);
 
 #endif

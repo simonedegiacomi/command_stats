@@ -5,6 +5,7 @@
 #include <signal.h>
 #include "execute.h"
 #include "../common/syscalls_wrappers.h"
+#include "../structs/node.h"
 
 
 typedef enum StreamDirection {
@@ -28,6 +29,7 @@ void execute_first_operand_async_and_start_appender(Node *node);
 
 void open_pipes_if_needed(Node *node);
 void open_pipe_if_needed(Stream *to_init, StreamDirection direction);
+void change_dir_if_needed (ExecutableNode *executable);
 void open_redirects_files_if_needed(Node *node);
 void open_redirect_file_if_needed(Stream *to_init);
 void init_appender(Appender *appender);
@@ -197,6 +199,7 @@ void open_pipe_if_needed(Stream *to_init, StreamDirection direction) {
 
 
 void run_execute_executable_child (Node *node) {
+    change_dir_if_needed(&node->value.executable);
     open_redirects_files_if_needed(node);
 
     int std_in  = node->std_in->file_descriptor;
@@ -222,6 +225,15 @@ void run_execute_executable_child (Node *node) {
     exit(-1);
 }
 
+void change_dir_if_needed (ExecutableNode *executable) {
+    int i;
+    for (i = 0; i < executable->cd_count; i++) {
+        int res = chdir(executable->cd[i]);
+        if (res == -1) {
+            program_fail("[EXECUTE] Can't chdir\n");
+        }
+    }
+}
 
 void open_redirects_files_if_needed(Node *node) {
     open_redirect_file_if_needed(node->std_in);

@@ -4,7 +4,7 @@
 #include <regex.h>
 #include "parse.h"
 #include "../common/my_regex.h"
-#include "wire.h"
+#include "builtin.h"
 
 
 SplitResult * create_split_for_operator(const char *string, const regex_t *separator);
@@ -118,7 +118,7 @@ Node * create_node_from_string(const char *raw_string);
 
 Node * create_tree_from_string (const char *raw_string) {
     Node *tree = create_node_from_string(raw_string);
-    wire(tree);
+    apply_builtin(tree);
     return tree;
 }
 

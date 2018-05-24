@@ -18,7 +18,12 @@ Node *create_node(){
 Node *create_executable_node(const char *path) {
     Node *node = create_node();
     node->type = ExecutableNode_T;
-    node->value.executable.path = strdup(path);
+
+    ExecutableNode *executable = &node->value.executable;
+    executable->path = strdup(path);
+    executable->cd = NULL;
+    executable->cd_count = 0;
+
     return node;
 }
 
