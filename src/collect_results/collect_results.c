@@ -39,8 +39,9 @@ void print_executable_node_in_txt(Node *node, FILE *stream_out, const char *comm
 	fprintf(stream_out, "PATH\t%s\n", node->value.executable.path);
 	fprintf(stream_out, "ID #%ld.%d", HASH, path_id);
 	fprintf(stream_out, "\n\n");
-
-	for (int i = 0; i < options->count; i++) {
+    
+    int i;
+	for (i = 0; i < options->count; i++) {
 		const char *option = options->sub_strings[i];
 		if (!strcmp(option, "exit_code") || options == NULL) {
 			fprintf(stream_out, "Exit Code: %d\n", result->exit_code);
@@ -72,7 +73,8 @@ void print_executable_node_in_csv(Node *node, FILE *stream_out, const char *comm
 			fprintf(stream_out, "#ID, COMMAND, PATH, ");
 		}
 		
-		for (int i = 0; i < options->count; i++) {
+		int i;
+		for (i = 0; i < options->count; i++) {
 			fprintf(stream_out, "%s, ", options->sub_strings[i]);
 		}
 		fprintf(stream_out, "\n");
@@ -84,7 +86,8 @@ void print_executable_node_in_csv(Node *node, FILE *stream_out, const char *comm
 	fprintf(stream_out, "%s, ", command);
 	fprintf(stream_out, "%s, ", node->value.executable.path);
 
-	for (int i = 0; i < options->count; i++) {
+	int i;
+	for (i = 0; i < options->count; i++) {
 		const char *option = options->sub_strings[i];
 		if (!strcmp(option, "exit_code") || options == NULL) {
 			fprintf(stream_out, "%d, ", result->exit_code);
@@ -127,7 +130,8 @@ void collect_and_print_results_rec(Node *node, FILE *stream_out, FileFormat form
 		case OrNode_T:
 		case SemicolonNode_T:
 			operandNode = &(node->value.operands);
-			for (int i = 0; i < operandNode->count; i++) {
+			int i;
+			for (i = 0; i < operandNode->count; i++) {
 				collect_and_print_results_rec(operandNode->nodes[i],stream_out,format,command,path_id,options);
 			}
 			break;
