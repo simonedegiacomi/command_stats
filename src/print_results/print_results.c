@@ -1,28 +1,123 @@
 #include <string.h>
 #include <unistd.h>
-#include "collect_results.h"
+#include <stdlib.h>
+#include "print_results.h"
 
 #include "../common/my_regex.h"
-
-typedef struct PrinterContext {
-    const char      *command;
-    long            index;
-    int             command_subindex;
-    SplitResult     *attributes;
-    FILE            *out;
-    FileFormat      format;
-} PrinterContext;
-
-typedef void (*ToString)(PrinterContext*, Node*);
-
-typedef struct Option {
-    const char *keyword;
-    ToString to_string;
-} Option;
+#include "to_string.h"
 
 
-void pid_to_string (PrinterContext *context, Node* node) {
-    fprintf(context->out, "wow %d\n", node->pid);
+
+typedef struct AttributeKeyword {
+    const char  *keyword;
+    Attribute   value;
+} AttributeKeyword;
+
+AttributeKeyword keywords[] = {
+    {
+        .keyword = "pid",
+        .value = PID
+    },
+    {
+        .keyword = "exit_code",
+        .value = EXIT_CODE
+    },
+    {
+        .keyword = "execution_failed",
+        .value = EXECUTION_FAILED
+    },
+    {
+        .keyword = "start_time",
+        .value = START_TIME
+    },
+    {
+        .keyword = "end_time",
+        .value = END_TIME
+    },
+    {
+        .keyword = "total_time",
+        .value = TOTAL_TIME
+    },
+    {
+        .keyword = "user_cpu_time",
+        .value = USER_CPU_TIME
+    },
+    {
+        .keyword = "system_cpu_time",
+        .value = SYSTEM_CPU_TIME
+    },
+    {
+        .keyword = "maximum_resident_set_size",
+        .value = MAXIMUM_RESIDENT_SEGMENT_SIZE
+    }
+};
+int keywords_count = sizeof(keywords) / sizeof(AttributeKeyword);
+
+
+
+
+/** Private functions declaration */
+Attribute parse_attribute (const char *attribute_string);
+void parse_attributes(const char *attributes_string, PrinterContext *context);
+
+long hash(const char *str);
+void print_executable_node(Node *node, PrinterContext *context);
+void print_results_rec(Node *node, PrinterContext *context);
+void print_executable_node_body(Node *node, PrinterContext *context);
+
+void print_txt_node_header(Node *node, PrinterContext *context);
+void print_txt_node_footer(PrinterContext *context);
+
+
+/** End of private functions declaration */
+
+
+
+void print_results(Node *root, int out_fd, FileFormat format,
+                   const char *command, const char *options_string) {
+    PrinterContext context = {
+        .command            = command,
+        .index              = hash(command),
+        .command_subindex   = 1,
+        .format             = format
+    };
+    parse_attributes(options_string, &context);
+    context.out = fdopen(out_fd, "w");
+
+    // TODO: Handle absolute header and footer
+    print_results_rec(root, &context);
+
+    fclose(context.out);
+}
+
+
+Attribute parse_attribute (const char *attribute_string) {
+    int i;
+    for (i = 0; i < keywords_count; i++) {
+        if (strcmp(attribute_string, keywords[i].keyword) == 0) {
+            return keywords[i].value;
+        }
+    }
+    return INVALID_ATTRIBUTE;
+}
+
+void parse_attributes(const char *attributes_string, PrinterContext *context) {
+    const regex_t * compiled = compile_regex(",");
+    SplitResult *split = split_string(attributes_string, compiled);
+
+    Attribute *attributes = malloc(split->count * sizeof(Attribute));
+    int i, j = 0;
+    for (i = 0; i < split->count; i++) {
+        Attribute attribute = parse_attribute(split->sub_strings[i]);
+        if (attribute != INVALID_ATTRIBUTE) {
+            attributes[j++] = attribute;
+        }
+    }
+
+    context->attributes = attributes;
+    context->attributes_count = j;
+
+    regfree((regex_t *) compiled);
 }
 
 
@@ -34,89 +129,6 @@ long hash(const char *str) {
         hash = (((hash << 5) + hash) + c); /* hash * 33 + c */
 
     return (hash + (int) getpid()) % 100000;
-}
-
-
-Option options[] = {
-    {
-        .keyword = "pid",
-        .to_string = pid_to_string
-    }/*,
-    {
-        .keyword = "exit_code",
-        .to_string = exit_code_to_string
-    },
-    {
-        .keyword = "execution_failed",
-        .to_string = execution_failed_to_string
-    },
-    {
-        .keyword = "start_time",
-        .to_string = start_time_to_string
-    },
-    {
-        .keyword = "end_time",
-        .to_string = end_time_to_string
-    },
-    {
-        .keyword = "total_time",
-        .to_string = total_time_to_string
-    },
-    {
-        .keyword = "user_cpu_time",
-        .to_string = user_cpu_time_to_string
-    },
-    {
-        .keyword = "system_cpu_time",
-        .to_string = system_cpu_time_to_string
-    },
-    {
-        .keyword = "maximum_resident_set_size",
-        .to_string = maximum_resident_set_size_to_string
-    },*/
-};
-int options_count = sizeof(options) / sizeof(Option);
-
-
-FileFormat format_from_string (const char* format_string) {
-    if (strcmp(format_string, "CSV") == 0) {
-        return CSV;
-    } else {
-        return TXT;
-    }
-}
-
-SplitResult * parse_attributes(const char *options_string);
-void print_executable_node(Node *node, PrinterContext *context);
-void print_results_rec(Node *node, PrinterContext *context);
-void print_executable_node_in_txt(Node *node, PrinterContext *context);
-void print_executable_node_in_csv(Node *node, PrinterContext *context);
-
-void print_results(Node *root, int out_fd, FileFormat format,
-                   const char *command, const char *options_string) {
-
-    PrinterContext context = {
-        .command            = command,
-        .index              = hash(command),
-        .command_subindex   = 1,
-        .format             = format,
-        .attributes         = parse_attributes(options_string)
-    };
-
-    context.out = fdopen(out_fd, "w");
-    print_results_rec(root, &context);
-    fclose(context.out);
-}
-
-
-
-SplitResult * parse_attributes(const char *options_string) {
-
-    const regex_t * compiled = compile_regex(",");
-    SplitResult *split = split_string(options_string, compiled);
-
-    regfree((regex_t *) compiled);
-    return split;
 }
 
 
@@ -138,159 +150,59 @@ void print_results_rec(Node *node, PrinterContext *context) {
 void print_executable_node(Node *node, PrinterContext *context) {
     switch (context->format) {
         case TXT:
-            print_executable_node_in_txt(node, context);
+            print_txt_node_header(node, context);
+            print_executable_node_body(node, context);
+            print_txt_node_footer(context);
             break;
 
         case CSV:
-            print_executable_node_in_csv(node, context);
+            print_executable_node_body(node, context);
             break;
     }
 }
 
 
+void print_executable_node_body(Node *node, PrinterContext *context) {
 
-ToString find_to_string (const char *keyword) {
     int i;
-    for (i = 0; i < options_count; i++) {
-        if (strcmp(options[i].keyword, keyword) == 0) {
-            return options[i].to_string;
+    for (i = 0; i < context->attributes_count; i++) {
+        Attribute attribute = context->attributes[i];
+        switch (attribute) {
+            case PID: pid_to_string(context, node); break;
+
+            case EXIT_CODE: exit_code_to_string(context, node); break;
+
+            case EXECUTION_FAILED: execution_failed_to_string(context, node); break;
+
+            case START_TIME: start_time_to_string(context, node); break;
+
+            case END_TIME: end_time_to_string(context, node); break;
+
+            case TOTAL_TIME: total_time_to_string(context, node); break;
+
+            case USER_CPU_TIME: user_cpu_time_to_string(context, node); break;
+
+            case SYSTEM_CPU_TIME: system_cpu_time_to_string(context, node); break;
+
+            case MAXIMUM_RESIDENT_SEGMENT_SIZE: maximum_resident_set_size_to_string(context, node); break;
+
+            default: break;
         }
     }
 
-
-    return NULL;
+    fprintf(context->out, "------------------------------------\n");
 }
 
 
-void print_executable_node_in_txt(Node *node, PrinterContext *context) {
-
-    ExecutionResult *result = node->result;
+void print_txt_node_header(Node *node, PrinterContext *context) {
     fprintf(context->out, "------------------------------------\n");
     fprintf(context->out, "COMMAND\t%s\n", context->command);
     fprintf(context->out, "PATH\t%s\n", node->value.executable.path);
     fprintf(context->out, "ID #%ld.%d", context->index, context->command_subindex++);
     fprintf(context->out, "\n\n");
+}
 
-
-
-
-    int i;
-    for (i = 0; i < context->attributes->count; i++) {
-        const char *option = context->attributes->sub_strings[i];
-        find_to_string(option)(context, node);
-    }
-
-
-/*
-    if (attributes->pid) {
-        fprintf(context->out, "PID: %d\n", node->pid);
-    }
-    if (attributes->exit_code) {
-        fprintf(context->out, "Exit Code: %d\n", result->exit_code);
-    }
-    if (attributes->execution_failed) {
-        fprintf(context->out, "Execution OK: %d\n", !result->execution_failed);
-    }
-    if (attributes->start_time) {
-        fprintf(context->out, "Start time: %ld\n", result->start_time);
-    }
-    if (attributes->end_time) {
-        fprintf(context->out, "End time: %ld\n", result->end_time);
-    }
-    if (attributes->total_time) {
-        fprintf(context->out, "Total time: %ld\n",
-                get_total_time(result->start_time, result->end_time));
-    }
-    if (attributes->user_cpu_time) {
-        fprintf(context->out, "User CPU time: %ld.%06ld\n",
-                result->user_cpu_time_used.tv_sec,
-                (long) result->user_cpu_time_used.tv_usec);
-    }
-    if (attributes->system_cpu_time) {
-        fprintf(context->out, "System CPU time: %ld.%06ld\n",
-                result->system_cpu_time_used.tv_sec,
-                (long) result->system_cpu_time_used.tv_usec);
-    }
-    if (attributes->maximum_resident_set_size) {
-        fprintf(context->out, "Maximum resident set size: %ld\n",
-                result->maximum_resident_set_size);
-    }
-*/
-
+void print_txt_node_footer(PrinterContext *context) {
     fprintf(context->out, "------------------------------------\n");
 }
-
-
-
-
-
-
-void print_executable_node_in_csv(Node *node, PrinterContext *context) {
-	/*if (!set_csv_header) {
-		if (options == NULL) {
-			fprintf(stream_out, "#ID, COMMAND, PATH, exit code, user CPU time, system CPU time, clock time, maximum resident set size\n");
-		} else {
-			fprintf(stream_out, "#ID, COMMAND, PATH, ");
-			int i;
-			for (i = 0; i < options->count; i++) {
-				if (check_option_is_valid(options->sub_strings[i])) {
-					fprintf(context->out, "%s, ", options->sub_strings[i]);
-				}
-			}
-			fprintf(context->out, "\n");
-		}
-		
-		int i;
-		for (i = 0; i < options->count; i++) {
-			fprintf(context->out, "%s, ", options->sub_strings[i]);
-		}
-		fprintf(context->out, "\n");
-		set_csv_header = TRUE;
-	}
-
-	ExecutionResult *result = node->result;
-	fprintf(context->out, "#%ld.%d, ", HASH, path_id);
-	fprintf(context->out, "%s, ", command);
-	fprintf(context->out, "%s, ", node->value.executable.path);
-
-	int i;
-	for (i = 0; i < options->count; i++) {
-		const char *option = options->sub_strings[i];
-		if (!strcmp(option, "exit_code") || options == NULL) {
-			fprintf(context->out, "%d\n, ", result->exit_code);
-		}
-		if (!strcmp(option, "execution_failed") || options == NULL) {
-			fprintf(context->out, "%d\n, ", !result->execution_failed);
-		}
-		if (!strcmp(option, "start_time") || options == NULL) {
-			fprintf(context->out, "%ld\n, ", result->start_time);
-		}
-		if (!strcmp(option, "end_time") || options == NULL) {
-			fprintf(context->out, "%ld\n, ", result->end_time);
-		}
-		if (!strcmp(option, "total_time") || options == NULL) {
-			fprintf(context->out, "%ld\n, ", get_total_time(result->start_time,result->end_time));
-		}
-		if (!strcmp(option, "user_cpu_time") || options == NULL) {
-			fprintf(context->out, "%ld.%06ld\n, ", result->user_cpu_time_used.tv_sec,
-					(long) result->user_cpu_time_used.tv_usec);
-		}
-		if (!strcmp(option, "system_cpu_time") || options == NULL) {
-			fprintf(context->out, "%ld.%06ld\n, ", result->system_cpu_time_used.tv_sec,
-					(long) result->system_cpu_time_used.tv_usec);
-		}
-		if (!strcmp(option, "maximum_resident_set_size") || options == NULL) {
-			fprintf(context->out, "%ld\n, ", result->maximum_resident_set_size);
-		}
-		if (!strcmp(option, "pid") || options == NULL) {
-			fprintf(context->out, "%d\n, ", node->pid);
-		}
-	}
-*/
-}
-
-
-
-
-
 

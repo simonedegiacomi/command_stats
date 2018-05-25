@@ -83,6 +83,7 @@ int count_max_appender_file_descriptors(Node *node);
 
 void remove_node_from_operands(Node *operands_node, Node *to_remove);
 
+// TODO: Receive the pointer to the node, not the times
 long get_total_time(long start, long end);
 
 #endif

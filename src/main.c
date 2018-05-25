@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include "parse/parse.h"
 #include "execute/execute.h"
-#include "collect_results/collect_results.h"
 #include "daemon/daemon.h"
 #include "daemon/daemon_socket.h"
-
+#include "print_results/common.h"
+#include "print_results/print_results.h"
 
 
 const char *DEFAULT_LOG_PATH		= "/tmp/SO_project.log";
@@ -58,8 +58,9 @@ int main (int argc, char *argv[]) {
     execute(command_tree);
 
 
-    int log_fd = obtain_log_fd(arguments->log_file_path);
-    collect_and_print_results(command_tree, log_fd, arguments->format, arguments->command, arguments->log_options);
+    int log_fd = book_and_obtain_log_fd(arguments->log_file_path);
+	print_results(command_tree, log_fd, arguments->format, arguments->command,
+				  arguments->log_options);
 
 	return command_tree->result->exit_code;
 }
