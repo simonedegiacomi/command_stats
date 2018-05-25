@@ -25,8 +25,6 @@ void send_booking (const char *log_path);
 void wait_booking_confirmation ();
 void finalize_booking_confirmation_receiver();
 int open_booked_pipe();
-
-BOOL try_to_read_daemon_pid(int *daemon_pid_dst);
 /**  End of private functions declaration */
 
 
@@ -111,6 +109,7 @@ pid_t read_daemon_pid() {
         if (!success && !last_attempts) {
             print_log("[RUN] Can't read daemon pid, restarting daemon...\n");
             start_daemon();
+            sleep(1);
         }
     }
 

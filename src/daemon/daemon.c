@@ -122,6 +122,12 @@ void finalize_daemon(int message_queue_id) {
 
 
 void stop_daemon() {
-	my_kill(read_daemon_pid(), SIGINT);
+    pid_t daemon_pid = -1;
+    BOOL found = try_to_read_daemon_pid(&daemon_pid);
+    if (found) {
+        my_kill(read_daemon_pid(), SIGINT);
+    } else {
+        program_fail("[RUN] Daemon is not running\n");
+    }
 }
 
