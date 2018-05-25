@@ -5,6 +5,6 @@
 struct flock get_flock_for_lock();
 
 pid_t   read_daemon_pid();
-int     obtain_log_fd(const char *log_path);
+int     book_and_obtain_log_fd(const char *log_path);
 
 #endif
