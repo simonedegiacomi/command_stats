@@ -5,10 +5,10 @@
 #include "execute/execute.h"
 #include "daemon/daemon.h"
 #include "daemon/daemon_socket.h"
-#include "print_results/common.h"
+#include "print_results/printer.h"
 #include "print_results/print_results.h"
 
-
+const char *DEFAULT_FORMAT			= "txt";
 const char *DEFAULT_LOG_PATH		= "/tmp/SO_project.log";
 const char *DEFAULT_LOG_OPTIONS 	= "start_time,end_time,exit_code";
 
@@ -19,7 +19,7 @@ typedef struct Arguments {
 	const char  *log_file_path;
 	const char  *log_options;
 	const char  *command;
-    FileFormat  format;
+    const char 	*format;
 } Arguments;
 
 Arguments * parse_arguments(int argc, char **argv);
@@ -71,6 +71,7 @@ Arguments * parse_arguments(int argc, char **argv) {
     arguments->stop_daemon 		= FALSE;
 	arguments->log_file_path 	= DEFAULT_LOG_PATH;
 	arguments->log_options 		= DEFAULT_LOG_OPTIONS;
+	arguments->format			= DEFAULT_FORMAT;
 	arguments->command			= NULL;
 
 
@@ -91,7 +92,7 @@ Arguments * parse_arguments(int argc, char **argv) {
 			arguments->log_options = argv[++i];
 
 		} else if (strcmp(argv[i], "--format") == 0 && next_argument_exists) {
-			arguments->format = format_from_string(argv[++i]);
+			arguments->format = argv[++i];
 
 		} else if (strcmp(argv[i], "--verbose") == 0) {
 			enable_logging();

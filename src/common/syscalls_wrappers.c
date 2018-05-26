@@ -64,6 +64,14 @@ int my_kill(pid_t pid, int sig) {
     return res;
 }
 
+FILE *my_fdopen(int fd, const char *mode) {
+    FILE *f = fdopen(fd, mode);
+    if (f == NULL) {
+        syscall_fail("Can't stream to fd");
+    }
+    return f;
+}
+
 /* ***** MESSAGE QUEUES ***** */
 
 key_t my_ftok(const char *pathname, int proj_id) {

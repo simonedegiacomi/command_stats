@@ -1,7 +1,7 @@
 #ifndef SYSCALLS_WRAPPERS_H
 #define SYSCALLS_WRAPPERS_H
 
-
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/msg.h>
 
@@ -12,6 +12,7 @@ int     my_close    (int fd);
 int     my_unlink   (const char *pathname);
 int     my_mkfifo   (const char *pathname, mode_t mode);
 int     my_kill     (pid_t pid, int sig);
+FILE *  my_fdopen   (int fd, const char *mode);
 
 
 /* ***** MESSAGE QUEUES ***** */

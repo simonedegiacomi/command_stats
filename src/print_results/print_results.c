@@ -4,8 +4,21 @@
 #include "print_results.h"
 
 #include "../common/my_regex.h"
-#include "to_string.h"
+#include "txt.h"
+#include "../common/syscalls_wrappers.h"
 
+typedef struct PrinterName {
+    const char  *name;
+    Printer     *printer;
+} PrinterName;
+
+PrinterName printers [] = {
+    {
+        .name = "txt",
+        .printer = &TxtPrinter
+    }
+};
+const int printers_count = sizeof(printers) / sizeof(PrinterName);
 
 
 typedef struct AttributeKeyword {
@@ -57,37 +70,39 @@ int keywords_count = sizeof(keywords) / sizeof(AttributeKeyword);
 
 
 /** Private functions declaration */
+void initialize_context (PrinterContext *context, int out_fd, const char *command, const char *options_string);
 Attribute parse_attribute (const char *attribute_string);
 void parse_attributes(const char *attributes_string, PrinterContext *context);
+Printer * get_printer_by_format_name(const char *name);
 
 long hash(const char *str);
-void print_executable_node(Node *node, PrinterContext *context);
-void print_results_rec(Node *node, PrinterContext *context);
-void print_executable_node_body(Node *node, PrinterContext *context);
+void print_results_root(Node *root, Printer *printer, PrinterContext *context);
+    void print_results_rec(Node *node, Printer *printer, PrinterContext *context);
+void print_executable_node(Node *node, Printer * printer, PrinterContext *context);
 
-void print_txt_node_header(Node *node, PrinterContext *context);
-void print_txt_node_footer(PrinterContext *context);
 
 
 /** End of private functions declaration */
 
 
 
-void print_results(Node *root, int out_fd, FileFormat format,
-                   const char *command, const char *options_string) {
-    PrinterContext context = {
-        .command            = command,
-        .index              = hash(command),
-        .command_subindex   = 1,
-        .format             = format
-    };
-    parse_attributes(options_string, &context);
-    context.out = fdopen(out_fd, "w");
+void print_results(Node *root, int out_fd, const char *format, const char *command, const char *options_string) {
+    PrinterContext context;
+    initialize_context(&context, out_fd, command, options_string);
+    Printer *printer = get_printer_by_format_name(format);
 
-    // TODO: Handle absolute header and footer
-    print_results_rec(root, &context);
+    print_results_root(root, printer, &context);
 
     fclose(context.out);
+}
+
+void initialize_context (PrinterContext *context, int out_fd, const char *command, const char *options_string) {
+    context->command            = command;
+    context->index              = hash(command);
+    context->command_subindex   = 1;
+    context->out                = my_fdopen(out_fd, "w");
+
+    parse_attributes(options_string, context);
 }
 
 
@@ -99,6 +114,18 @@ Attribute parse_attribute (const char *attribute_string) {
         }
     }
     return INVALID_ATTRIBUTE;
+}
+
+Printer * get_printer_by_format_name(const char *name) {
+    int i;
+    for (i = 0; i < printers_count; i++) {
+        if (strcmp(printers[i].name, name) == 0) {
+            return printers[i].printer;
+        }
+    }
+
+    program_fail("Can't print statistics in '%s' format.\n", name);
+    return NULL;
 }
 
 void parse_attributes(const char *attributes_string, PrinterContext *context) {
@@ -131,78 +158,76 @@ long hash(const char *str) {
     return (hash + (int) getpid()) % 100000;
 }
 
+void print_results_root(Node *root, Printer *printer, PrinterContext *context) {
+    printer->head(context, root);
 
-void print_results_rec(Node *node, PrinterContext *context) {
+    print_results_rec(root, printer, context);
 
+    printer->foot(context, root);
+}
+
+void print_results_rec(Node *node, Printer *printer, PrinterContext *context) {
     if (is_operand_node(node)) {
         OperandsNode *operandNode;
         operandNode = &(node->value.operands);
         int i;
         for (i = 0; i < operandNode->count; i++) {
-            print_results_rec(operandNode->nodes[i], context);
+            print_results_rec(operandNode->nodes[i], printer, context);
         }
     } else {
-        print_executable_node(node, context);
+        print_executable_node(node, printer, context);
     }
 }
 
+void print_executable_node(Node *node, Printer *printer, PrinterContext *context) {
 
-void print_executable_node(Node *node, PrinterContext *context) {
-    switch (context->format) {
-        case TXT:
-            print_txt_node_header(node, context);
-            print_executable_node_body(node, context);
-            print_txt_node_footer(context);
-            break;
-
-        case CSV:
-            print_executable_node_body(node, context);
-            break;
-    }
-}
-
-
-void print_executable_node_body(Node *node, PrinterContext *context) {
+    printer->executable_head(context, node);
 
     int i;
     for (i = 0; i < context->attributes_count; i++) {
         Attribute attribute = context->attributes[i];
         switch (attribute) {
-            case PID: pid_to_string(context, node); break;
+            case PID:
+                printer->pid_to_string(context, node);
+                break;
 
-            case EXIT_CODE: exit_code_to_string(context, node); break;
+            case EXIT_CODE:
+                printer->exit_code_to_string(context, node);
+                break;
 
-            case EXECUTION_FAILED: execution_failed_to_string(context, node); break;
+            case EXECUTION_FAILED:
+                printer->execution_failed_to_string(context, node);
+                break;
 
-            case START_TIME: start_time_to_string(context, node); break;
+            case START_TIME:
+                printer->start_time_to_string(context, node);
+                break;
 
-            case END_TIME: end_time_to_string(context, node); break;
+            case END_TIME:
+                printer->end_time_to_string(context, node);
+                break;
 
-            case TOTAL_TIME: total_time_to_string(context, node); break;
+            case TOTAL_TIME:
+                printer->total_time_to_string(context, node);
+                break;
 
-            case USER_CPU_TIME: user_cpu_time_to_string(context, node); break;
+            case USER_CPU_TIME:
+                printer->user_cpu_time_to_string(context, node);
+                break;
 
-            case SYSTEM_CPU_TIME: system_cpu_time_to_string(context, node); break;
+            case SYSTEM_CPU_TIME:
+                printer->system_cpu_time_to_string(context, node);
+                break;
 
-            case MAXIMUM_RESIDENT_SEGMENT_SIZE: maximum_resident_set_size_to_string(context, node); break;
+            case MAXIMUM_RESIDENT_SEGMENT_SIZE:
+                printer->maximum_resident_set_size_to_string(context, node);
+                break;
 
             default: break;
         }
     }
 
-    fprintf(context->out, "------------------------------------\n");
+    printer->executable_foot(context, node);
 }
 
-
-void print_txt_node_header(Node *node, PrinterContext *context) {
-    fprintf(context->out, "------------------------------------\n");
-    fprintf(context->out, "COMMAND\t%s\n", context->command);
-    fprintf(context->out, "PATH\t%s\n", node->value.executable.path);
-    fprintf(context->out, "ID #%ld.%d", context->index, context->command_subindex++);
-    fprintf(context->out, "\n\n");
-}
-
-void print_txt_node_footer(PrinterContext *context) {
-    fprintf(context->out, "------------------------------------\n");
-}
 

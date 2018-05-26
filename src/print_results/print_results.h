@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include "../common/common.h"
 #include "../structs/node.h"
-#include "common.h"
+#include "printer.h"
 
-void print_results(Node *root, int stream_fd, FileFormat format,
+void print_results(Node *root, int stream_fd, const char *format,
 				   const char *command, const char *options_string);
 
 #endif
