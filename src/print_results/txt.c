@@ -1,9 +1,12 @@
 #include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
 #include "txt.h"
 
 
 void txt_head(PrinterContext *context, Node *node) {
-    fprintf(context->out, "\n\n");
+    fprintf(context->out, "Execution of '%s'\n", context->command);
+    fprintf(context->out, "------------------------------------\n");
 }
 
 void txt_executable_head(PrinterContext *context, Node *node) {
@@ -16,28 +19,35 @@ void txt_executable_head(PrinterContext *context, Node *node) {
 
 
 void txt_pid_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "PID: %d\n", node->pid);
+    fprintf(context->out, "PID:\t%d\n", node->pid);
 }
 
 void txt_exit_code_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "Exit Code: %d\n", node->result->exit_code);
+    fprintf(context->out, "Exit Code:\t%d\n", node->result->exit_code);
 }
 
 void txt_execution_failed_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "Execution OK: %d\n", !node->result->execution_failed);
+    fprintf(context->out, "Execution OK:\t%s\n", node->result->execution_failed ? "true" : "false");
 }
 
 void txt_start_time_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "Start time: %ld\n", node->result->start_time);
+    time_t start = node->result->start_time.tv_sec;
+    fprintf(context->out, "Start time:\t%s", ctime(&start));
 }
 
 void txt_end_time_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "End time: %ld\n", node->result->end_time);
+    time_t end = node->result->end_time.tv_sec;
+    fprintf(context->out, "End time:\t%s", ctime(&end));
 }
 
 void txt_total_time_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "Total time: %ld\n", get_total_clock_time(node));
+    struct timespec total_time = get_total_clock_time(node);
+
+    fprintf(context->out, "Total time:\t");
+    print_time(total_time, context->out);
+    fprintf(context->out, "\n");
 }
+
 
 void txt_user_cpu_time_to_string(PrinterContext *context, Node *node) {
     fprintf(context->out, "User CPU time: %ld.%06ld\n",
@@ -60,12 +70,10 @@ void txt_maximum_resident_set_size_to_string(PrinterContext *context, Node *node
 
 
 
-
-void txt_foot (PrinterContext *context, Node *node) {
-
-}
-
 void txt_executable_foot (PrinterContext *context, Node *node) {
     fprintf(context->out, "------------------------------------\n");
 }
 
+void txt_foot (PrinterContext *context, Node *node) {
+    fprintf(context->out, "\n\n\n");
+}

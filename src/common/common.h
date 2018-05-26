@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdio.h>
+#include <time.h>
 
 #define BOOL char
 #define TRUE 1
@@ -11,7 +13,7 @@
 #define READ_FROM_PIPE 0
 
 
-long get_current_time ();
+struct timespec get_current_time ();
 
 void enable_logging();
 BOOL is_logging_enabled();
@@ -21,5 +23,7 @@ void syscall_fail(const char *message);
 
 
 void copy_stream (int from, int to);
+
+void print_time (struct timespec time, FILE *out);
 
 #endif

@@ -3,13 +3,16 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdarg.h>
+#include <memory.h>
 #include "common.h"
 #include "syscalls_wrappers.h"
 
-long get_current_time () {
+const int CTIME_BUFFER = 50;
+
+struct timespec get_current_time () {
     struct timespec res;
     clock_gettime(CLOCK_REALTIME, &res);
-    return res.tv_sec;
+    return res;
 }
 
 static BOOL log_enabled = FALSE;
@@ -61,4 +64,16 @@ void copy_stream (int from, int to) {
             my_write(to, buffer, (size_t) read_res);
         }
     } while (read_res > 0);
+}
+
+
+
+void print_time (struct timespec time, FILE *out) {
+    double ms = (time.tv_nsec / 1000000.0);
+
+    int h = time.tv_sec / (60 * 60);
+    int m = (time.tv_sec - (h * 60 * 60)) / 60;
+    int s = (time.tv_sec - (h * 60 * 60) - (m * 60));
+
+    fprintf(out, "%d h %d m %d s %f ms", h, m, s, ms);
 }

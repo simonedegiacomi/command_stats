@@ -152,6 +152,12 @@ void remove_node_from_operands(Node *operands_node, Node *to_remove) {
 }
 
 
-long get_total_clock_time(Node *node) {
-    return node->result->end_time - node->result->start_time;
+struct timespec get_total_clock_time(Node *node) {
+    struct timespec start = node->result->start_time;
+    struct timespec end = node->result->end_time;
+
+    return (struct timespec) {
+        .tv_sec     = end.tv_sec - start.tv_sec,
+        .tv_nsec    = end.tv_nsec - start.tv_nsec
+    };
 }

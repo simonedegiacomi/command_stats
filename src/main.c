@@ -10,7 +10,7 @@
 
 const char *DEFAULT_FORMAT			= "txt";
 const char *DEFAULT_LOG_PATH		= "/tmp/SO_project.log";
-const char *DEFAULT_LOG_OPTIONS 	= "start_time,end_time,exit_code";
+const char *DEFAULT_LOG_OPTIONS 	= "start_time,end_time,total_time,exit_code";
 
 
 typedef struct Arguments {
