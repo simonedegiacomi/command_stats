@@ -12,6 +12,7 @@ Node *create_node(){
     Node *node = malloc(sizeof(Node));
     node->std_in        = NULL;
     node->std_out       = NULL;
+    node->result        = NULL;
     return node;
 }
 
@@ -134,6 +135,7 @@ BOOL is_operand_node (Node *node) {
 }
 
 
+
 void remove_node_from_operands(Node *operands_node, Node *to_remove) {
     OperandsNode *operands = &operands_node->value.operands;
 
@@ -141,7 +143,7 @@ void remove_node_from_operands(Node *operands_node, Node *to_remove) {
     BOOL removed = FALSE;
     for (i = 0; i < operands->count; i++) {
         if (operands->nodes[i] == to_remove) {
-            //destroy_node(operands->nodes[i]);
+            destroy_node(operands->nodes[i]);
 
             removed = TRUE;
         } else if (removed) {
@@ -152,6 +154,7 @@ void remove_node_from_operands(Node *operands_node, Node *to_remove) {
 }
 
 
+
 struct timespec get_total_clock_time(Node *node) {
     struct timespec start = node->result->start_time;
     struct timespec end = node->result->end_time;
@@ -160,4 +163,60 @@ struct timespec get_total_clock_time(Node *node) {
         .tv_sec     = end.tv_sec - start.tv_sec,
         .tv_nsec    = end.tv_nsec - start.tv_nsec
     };
+}
+
+
+void destroy_node (Node *node) {
+    int i = 0;
+    if (is_operand_node(node)) {
+        OperandsNode *operands = &node->value.operands;
+
+        for (i = 0; i < operands->count; i++) {
+            destroy_node(operands->nodes[i]);
+        }
+        free(operands->nodes);
+
+        if (operands->appender != NULL) {
+            destroy_appender(operands->appender);
+        }
+
+        printf("-------");
+    } else {
+        ExecutableNode *executable = &node->value.executable;
+        free(executable->path);
+
+        for (i = 0; i < executable->argc; i++) { // NOTE: Last in null
+            free(executable->argv[i]);
+        }
+        free(executable->argv);
+
+
+        if (executable->cd != NULL) {
+            for (i = 0; i < executable->cd_count; i++) {
+                free(executable->cd[i]);
+            }
+            free(executable->cd);
+        }
+    }
+
+    if (node->std_in != NULL) {
+        printf("in\n");
+        destroy_stream(node->std_in);
+    }
+
+    if (node->std_out != NULL) {
+        printf("out\n");
+        destroy_stream(node->std_out);
+    }
+
+    if (node->result != NULL) {
+        printf("res\n");
+        destroy_result(node->result);
+    }
+
+    free(node);
+}
+
+void destroy_result (ExecutionResult *result) {
+    free(result);
 }

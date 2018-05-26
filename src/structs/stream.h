@@ -45,4 +45,7 @@ Stream *        wrap_pipe_into_stream   (PipeStream *pipe_stream, int direction)
 Stream **       wrap_stream_into_array  (Stream *stream);
 PipeStream      *create_pipe();
 
+void destroy_appender (Appender *appender);
+void destroy_stream (Stream *stream);
+
 #endif

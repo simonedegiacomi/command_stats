@@ -25,3 +25,28 @@ PipeStream *create_pipe() {
     stream->initialized = FALSE;
     return stream;
 }
+
+void destroy_appender (Appender *appender) {
+    int i;
+    for (i = 0; i < appender->from_count; i++) {
+        destroy_stream(appender->from[i]);
+    }
+
+    destroy_stream(appender->to);
+    free(appender);
+}
+
+void destroy_stream (Stream *stream) {
+    if (stream->type == FileStream_T) {
+
+        FileStream *file = &stream->options.file;
+        free((void *) file->name);
+    } else if (stream->type == PipeStream_T) {
+
+        // TODO: hehe, questo non è facile...
+    } else {
+        printf("fd stream %d\n", stream);
+    }
+    free(stream);
+    printf("morto");
+}

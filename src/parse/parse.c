@@ -282,7 +282,7 @@ SplitResult * create_split_for_operator(const char *string, const regex_t *separ
 }
 
 
-char *clear_argument (const char *to_clear) {
+char * clear_argument (const char *to_clear) {
     if (strchr(to_clear, '\\') == NULL) {
         return strdup(to_clear);
     }
@@ -301,6 +301,7 @@ char *clear_argument (const char *to_clear) {
         to_clear += match.rm_eo;
 
     }
+
 
     return res;
 }
@@ -345,14 +346,16 @@ Node * create_executable_from_string (SplitResult *pieces) {
         const char *start = string + match_to_use->rm_so;
         const char *end = string + match_to_use->rm_eo;
 
+        char *temp = strndup(start, (end - start));
         if (arg_is_quoted && last_arg_was_quoted && (start - 2) == last_arg_end) {
             i--;
-            char *temp = strndup(start, (end - start));
+
             argv[i] = strcat(argv[i], clear_argument(temp));
             joined_arguments++;
         } else {
-            argv[i] = clear_argument(strndup(start, (end - start)));
+            argv[i] = clear_argument(temp);
         }
+        free(temp);
 
         last_arg_end = end;
         last_arg_was_quoted = arg_is_quoted;
@@ -374,6 +377,7 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
     Node *node = create_node();
     node->type = PipeNode_T;
     OperandsNode *pipe = &node->value.operands;
+    pipe->appender = NULL;
     pipe->count = pieces->count;
     pipe->nodes = malloc(pieces->count * sizeof(Node*));
 
@@ -382,6 +386,8 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
         pipe->nodes[i] = create_node_from_string(pieces->sub_strings[i]);
     }
 
+    printf("AAAAAA %d\n", node->std_in);
+
     return node;
 }
 
@@ -389,6 +395,7 @@ Node * create_operands_from_string (SplitResult *pieces, NodeType type) {
     Node *node = create_node();
     node->type = type;
     OperandsNode *andNode = &node->value.operands;
+    andNode->appender = NULL;
     andNode->count = pieces->count;
     andNode->nodes = malloc(pieces->count * sizeof(Node*));
 

@@ -80,9 +80,13 @@ Node * find_next_executable_in_operands(Node *father, Node *executed_child);
 BOOL is_operand_node (Node *node);
 int count_max_appender_file_descriptors(Node *node);
 
-void remove_node_from_operands(Node *operands_node, Node *to_remove);
-
-
 struct timespec get_total_clock_time(Node *node);
+
+void remove_node_from_operands(Node *operands_node, Node *to_remove);
+void destroy_node (Node *node);
+void destroy_result (ExecutionResult *result);
+
+
+
 
 #endif
