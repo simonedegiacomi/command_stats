@@ -36,8 +36,7 @@ void txt_end_time_to_string(PrinterContext *context, Node *node) {
 }
 
 void txt_total_time_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "Total time: %ld\n",
-            get_total_time(node->result->start_time, node->result->end_time));
+    fprintf(context->out, "Total time: %ld\n", get_total_clock_time(node));
 }
 
 void txt_user_cpu_time_to_string(PrinterContext *context, Node *node) {

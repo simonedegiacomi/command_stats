@@ -6,6 +6,7 @@
 #include "../common/my_regex.h"
 #include "txt.h"
 #include "../common/syscalls_wrappers.h"
+#include "csv.h"
 
 typedef struct PrinterName {
     const char  *name;
@@ -16,63 +17,22 @@ PrinterName printers [] = {
     {
         .name = "txt",
         .printer = &TxtPrinter
+    },
+    {
+        .name = "csv",
+        .printer = &CsvPrinter
     }
 };
 const int printers_count = sizeof(printers) / sizeof(PrinterName);
 
 
-typedef struct AttributeKeyword {
-    const char  *keyword;
-    Attribute   value;
-} AttributeKeyword;
 
-AttributeKeyword keywords[] = {
-    {
-        .keyword = "pid",
-        .value = PID
-    },
-    {
-        .keyword = "exit_code",
-        .value = EXIT_CODE
-    },
-    {
-        .keyword = "execution_failed",
-        .value = EXECUTION_FAILED
-    },
-    {
-        .keyword = "start_time",
-        .value = START_TIME
-    },
-    {
-        .keyword = "end_time",
-        .value = END_TIME
-    },
-    {
-        .keyword = "total_time",
-        .value = TOTAL_TIME
-    },
-    {
-        .keyword = "user_cpu_time",
-        .value = USER_CPU_TIME
-    },
-    {
-        .keyword = "system_cpu_time",
-        .value = SYSTEM_CPU_TIME
-    },
-    {
-        .keyword = "maximum_resident_set_size",
-        .value = MAXIMUM_RESIDENT_SEGMENT_SIZE
-    }
-};
-int keywords_count = sizeof(keywords) / sizeof(AttributeKeyword);
 
 
 
 
 /** Private functions declaration */
 void initialize_context (PrinterContext *context, int out_fd, const char *command, const char *options_string);
-Attribute parse_attribute (const char *attribute_string);
-void parse_attributes(const char *attributes_string, PrinterContext *context);
 Printer * get_printer_by_format_name(const char *name);
 
 long hash(const char *str);
@@ -106,15 +66,7 @@ void initialize_context (PrinterContext *context, int out_fd, const char *comman
 }
 
 
-Attribute parse_attribute (const char *attribute_string) {
-    int i;
-    for (i = 0; i < keywords_count; i++) {
-        if (strcmp(attribute_string, keywords[i].keyword) == 0) {
-            return keywords[i].value;
-        }
-    }
-    return INVALID_ATTRIBUTE;
-}
+
 
 Printer * get_printer_by_format_name(const char *name) {
     int i;
@@ -128,24 +80,7 @@ Printer * get_printer_by_format_name(const char *name) {
     return NULL;
 }
 
-void parse_attributes(const char *attributes_string, PrinterContext *context) {
-    const regex_t * compiled = compile_regex(",");
-    SplitResult *split = split_string(attributes_string, compiled);
 
-    Attribute *attributes = malloc(split->count * sizeof(Attribute));
-    int i, j = 0;
-    for (i = 0; i < split->count; i++) {
-        Attribute attribute = parse_attribute(split->sub_strings[i]);
-        if (attribute != INVALID_ATTRIBUTE) {
-            attributes[j++] = attribute;
-        }
-    }
-
-    context->attributes = attributes;
-    context->attributes_count = j;
-
-    regfree((regex_t *) compiled);
-}
 
 
 long hash(const char *str) {

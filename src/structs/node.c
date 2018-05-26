@@ -152,6 +152,6 @@ void remove_node_from_operands(Node *operands_node, Node *to_remove) {
 }
 
 
-long get_total_time(long start, long end) {
-    return end - start;
+long get_total_clock_time(Node *node) {
+    return node->result->end_time - node->result->start_time;
 }

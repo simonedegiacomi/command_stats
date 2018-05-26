@@ -17,6 +17,53 @@ typedef enum Attribute {
     MAXIMUM_RESIDENT_SEGMENT_SIZE, // TODO: rename
 } Attribute;
 
+typedef struct AttributeKeyword {
+    const char  *keyword;
+    Attribute   value;
+} AttributeKeyword;
+
+static AttributeKeyword keywords[] = {
+    {
+        .keyword = "pid",
+        .value = PID
+    },
+    {
+        .keyword = "exit_code",
+        .value = EXIT_CODE
+    },
+    {
+        .keyword = "execution_failed",
+        .value = EXECUTION_FAILED
+    },
+    {
+        .keyword = "start_time",
+        .value = START_TIME
+    },
+    {
+        .keyword = "end_time",
+        .value = END_TIME
+    },
+    {
+        .keyword = "total_time",
+        .value = TOTAL_TIME
+    },
+    {
+        .keyword = "user_cpu_time",
+        .value = USER_CPU_TIME
+    },
+    {
+        .keyword = "system_cpu_time",
+        .value = SYSTEM_CPU_TIME
+    },
+    {
+        .keyword = "maximum_resident_set_size",
+        .value = MAXIMUM_RESIDENT_SEGMENT_SIZE
+    }
+};
+static int keywords_count = sizeof(keywords) / sizeof(AttributeKeyword);
+
+
+
 typedef struct PrinterContext {
     const char      *command;
     long            index;
@@ -48,6 +95,11 @@ typedef struct Printer {
     ToString executable_foot;
 } Printer;
 
+
+
+Attribute       parse_attribute         (const char *attribute_string);
+void            parse_attributes        (const char *attributes_string, PrinterContext *context);
+const char *    get_attribute_name      (Attribute attribute);
 
 
 #endif
