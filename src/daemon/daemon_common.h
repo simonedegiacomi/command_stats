@@ -5,10 +5,11 @@
 #include <unistd.h>
 
 #define MESSAGE_TYPE 1
+#define MAX_LOG_PATH 4098
 
 typedef struct BookingInfo {
 	int pid;
-	char log_path[4096];
+	char log_path[MAX_LOG_PATH];
 } BookingInfo;
 
 typedef struct Message {

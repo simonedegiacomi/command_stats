@@ -119,12 +119,15 @@ Node * create_tree_from_string (const char *raw_string) {
 Node * create_node_from_string(const char *raw_string) {
     initialize_parser();
 
+
     RedirectSplit   *string_and_redirects   = create_split_command_from_redirect(raw_string);
     const char      *string                 = remove_brackets_if_alone(string_and_redirects->command);
+
 
     int i;
     Node *parsed = NULL;
     for (i = 0; i < operators_count && parsed == NULL; i++) {
+
         PriorityMapEntry *entry = &priority_map[i];
         SplitResult *pieces     = create_split_for_operator(string, entry->compiled_separator);
 
@@ -133,6 +136,10 @@ Node * create_node_from_string(const char *raw_string) {
         }
 
         destroy_split(pieces);
+    }
+
+    if (parsed == NULL) {
+        program_fail("[PARSER] Can't parse command.\n");
     }
 
     if (string_and_redirects->has_redirects) {
@@ -305,6 +312,10 @@ Node * create_executable_from_string (SplitResult *pieces) {
 
     const char *string = pieces->sub_strings[0];
     int arguments_count = count_occurrences_of_regex(string, regex);
+    if (arguments_count <= 0) {
+        program_fail("[PARSER] Can't parse command.\n");
+    }
+
     char **argv = malloc((arguments_count + 1) * sizeof(char*)); // The last string of argv must be a null pointer
 
     int i;

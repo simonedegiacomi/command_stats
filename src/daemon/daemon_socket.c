@@ -23,14 +23,16 @@ const int MAX_ATTEMPTS = 3;
 void initialize_booking_confirmation_receiver();
 void send_booking (const char *log_path);
 void wait_booking_confirmation ();
+void handle_booking_confirmation();
 void finalize_booking_confirmation_receiver();
 int open_booked_pipe();
 /**  End of private functions declaration */
 
 
-BOOL continue_signal = FALSE;
+
+int daemon_response = -1;
 void on_continue_signal(int sig) {
-	continue_signal = TRUE;
+	daemon_response = sig;
 }
 
 
@@ -49,6 +51,7 @@ int book_and_obtain_log_fd(const char *log_path) {
 
     send_booking(log_path);
     wait_booking_confirmation();
+    handle_booking_confirmation();
 
     finalize_booking_confirmation_receiver();
     return open_booked_pipe();
@@ -56,6 +59,9 @@ int book_and_obtain_log_fd(const char *log_path) {
 
 void initialize_booking_confirmation_receiver(){
     signal(SIGCONT, on_continue_signal);
+    signal(SIGUSR1, on_continue_signal);
+    signal(SIGUSR2, on_continue_signal);
+
 }
 
 void send_booking (const char *log_path) {
@@ -69,8 +75,15 @@ void send_booking (const char *log_path) {
             .pid = getpid()
         }
     };
+
+    // TODO: Explain
+    getcwd(message.booking_info.log_path, MAX_LOG_PATH);
+    size_t end = strlen(message.booking_info.log_path);
+
     // NOTE: Memory MUST be continue, we cannot use strdup or copy the pointer!
-    strcpy(message.booking_info.log_path, log_path);
+    strcpy(&message.booking_info.log_path[end + 1], log_path);
+
+
 
     my_msgsnd(message_queue_id, &message, sizeof(BookingInfo), 0);
 
@@ -80,11 +93,31 @@ void send_booking (const char *log_path) {
 
 void wait_booking_confirmation () {
     print_log("[DAEMON_SOCKET] Waiting for signal from daemon...");
-    while (!continue_signal) {	//https://www.gnu.org/software/libc/manual/html_node/Pause-Problems.html#Pause-Problems
+    while (daemon_response == -1) {	//https://www.gnu.org/software/libc/manual/html_node/Pause-Problems.html#Pause-Problems
         sleep(1);
         //pause();
     }
     print_log(" finally!\n");
+}
+
+void handle_booking_confirmation () {
+    switch (daemon_response) {
+        case DAEMON_RESPONSE_OK_NEW_FILE:
+            print_log("[DAEMON_SOCKET] Writing a new log file\n");
+            break;
+
+        case DAEMON_RESPONSE_OK_FILE_EXISTS:
+            printf("[DAEMON_SOCKET] Log file already exists, content will be concatenated!\n");
+            break;
+
+        case DAEMON_RESPONSE_ERROR_CANT_WRITE:
+            program_fail("Can't write log file\n");
+            break;
+
+        default:
+            program_fail("Unknown daemon response\n");
+            break;
+    }
 }
 
 void finalize_booking_confirmation_receiver(){
@@ -99,7 +132,7 @@ int open_booked_pipe(){
 pid_t read_daemon_pid() {
 
 	int attempts;
-    BOOL success;
+    BOOL success = FALSE;
     pid_t daemon_pid = - 1;
 
     for (attempts = 0; attempts < MAX_ATTEMPTS && !success; attempts++) {

@@ -11,9 +11,9 @@ void txt_head(PrinterContext *context, Node *node) {
 
 void txt_executable_head(PrinterContext *context, Node *node) {
     fprintf(context->out, "------------------------------------\n");
-    fprintf(context->out, "COMMAND\t%s\n", context->command);
-    fprintf(context->out, "PATH\t%s\n", node->value.executable.path);
-    fprintf(context->out, "ID #%ld.%d", context->index, context->command_subindex++);
+    fprintf(context->out, "COMMAND:\t%s\n", context->command);
+    fprintf(context->out, "PATH:\t\t%s\n", node->value.executable.path);
+    fprintf(context->out, "ID:\t\t#%ld.%d", context->index, context->command_subindex++);
     fprintf(context->out, "\n\n");
 }
 

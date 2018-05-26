@@ -8,6 +8,7 @@
 
 #include <signal.h>
 #include <errno.h>
+#include <memory.h>
 
 #include "../common/common.h"
 #include "../common/syscalls_wrappers.h"
@@ -16,18 +17,34 @@
 #include "daemonize.h"
 #include "daemon_socket.h"
 
-
+/** Private functions declaration */
 void run_daemon_main();
+void acquire_lock_or_exit();
+
+BOOL file_exists (const char *name);
+void handle_message (Message *message);
 int initialize_daemon();
 void finalize_daemon(int message_queue_id);
 
+/** End of private functions declaration */
+
+/**
+ * Flag that becomes true when the signal to stop the daemon is received.
+ */
 BOOL interrupt_signal = FALSE;
+
+/**
+ * Handler of the signal to stop the daemon
+ */
 void on_interrupt_signal(int sig) {
 	interrupt_signal = TRUE;
 	print_log("[DAEMON] SIGINT or SIGTERM received\n");
 }
 
-
+/**
+ * Starts the daemon and returns. If the daemon is already running the new
+ * daemon will stop himself.
+ */
 void start_daemon() {
     DaemonizeResult res = daemonize();
     if (res == FAILED) {
@@ -37,23 +54,7 @@ void start_daemon() {
     }
 }
 
-/**
- *
- * @return
- */
-void acquire_lock_or_exit() {
-    int lock_fd = open(lock_file_path, O_CREAT | O_RDWR, 0666);
-    if (lock_fd == -1) {
-        syscall_fail(lock_file_path);
-    }
 
-
-    struct flock lock = get_flock_for_lock();
-    if (fcntl(lock_fd, F_SETLK, &lock) == -1) {
-        print_log("[DAEMON] Another daemon is already running, exiting");
-        exit(0);
-    }
-}
 
 void run_daemon_main() {
     int message_queue_id = initialize_daemon();
@@ -61,6 +62,7 @@ void run_daemon_main() {
     while (!interrupt_signal) {
 		Message message;
 		ssize_t res = msgrcv(message_queue_id, &message, sizeof(BookingInfo), MESSAGE_TYPE, 0);
+        print_log("exit\n");
         if (res == -1 && errno != EINTR) {
             syscall_fail("Can't receive message from message queue");
         }
@@ -69,21 +71,7 @@ void run_daemon_main() {
             print_log("[DAEMON] Received message:\n");
             print_message(message);
 
-
-            print_log("[DAEMON] Sending SIGCONT to %d\n",
-                      message.booking_info.pid);
-            kill(message.booking_info.pid, SIGCONT);
-
-
-            int stats_fifo_fd = my_open(stats_fifo_path, O_RDONLY);
-
-            int stats_log_fd = open(message.booking_info.log_path,
-                                    O_CREAT | O_APPEND | O_WRONLY, 0666);
-
-            copy_stream(stats_fifo_fd, stats_log_fd);
-
-            my_close(stats_log_fd);
-            my_close(stats_fifo_fd);
+            handle_message(&message);
         }
 	}
 
@@ -91,6 +79,7 @@ void run_daemon_main() {
 	finalize_daemon(message_queue_id);
 	exit(0);
 }
+
 
 /**
  * Tries to acquire exclusive lock on the lock file and exit if the lock file is
@@ -112,6 +101,64 @@ int initialize_daemon() {
     return message_queue_id;
 }
 
+
+/**
+ *
+ * @return
+ */
+void acquire_lock_or_exit() {
+    int lock_fd = open(lock_file_path, O_CREAT | O_RDWR, 0666);
+    if (lock_fd == -1) {
+        syscall_fail(lock_file_path);
+    }
+
+
+    struct flock lock = get_flock_for_lock();
+    if (fcntl(lock_fd, F_SETLK, &lock) == -1) {
+        print_log("[DAEMON] Another daemon is already running, exiting");
+        exit(0);
+    }
+}
+
+void handle_message (Message *message) {
+
+    const char *tool_wd = message->booking_info.log_path;
+    size_t end = strlen(tool_wd);
+    const char *log_path = &message->booking_info.log_path[end + 1];
+
+    chdir(tool_wd);
+
+    BOOL exists = file_exists(log_path);
+
+
+    int stats_log_fd = open(log_path, O_CREAT | O_APPEND | O_WRONLY, 0666);
+
+
+    if (stats_log_fd == -1) {
+        print_log("[DAEMON] Sending SIGUSR2 to %d, can't open log file\n", message->booking_info.pid);
+        kill(message->booking_info.pid, DAEMON_RESPONSE_ERROR_CANT_WRITE);
+    } else {
+
+        if (exists) {
+            print_log("[DAEMON] Sending SIGUSR1 to %d, log file exists\n", message->booking_info.pid);
+            kill(message->booking_info.pid, DAEMON_RESPONSE_OK_FILE_EXISTS);
+        } else {
+            print_log("[DAEMON] Sending SIGCONT to %d\n", message->booking_info.pid);
+            kill(message->booking_info.pid, DAEMON_RESPONSE_OK_NEW_FILE);
+        }
+
+        int stats_fifo_fd = my_open(stats_fifo_path, O_RDONLY);
+
+        copy_stream(stats_fifo_fd, stats_log_fd);
+
+        my_close(stats_log_fd);
+        my_close(stats_fifo_fd);
+    }
+}
+
+BOOL file_exists (const char *name) {
+    return access(name, F_OK) != -1;
+}
 
 void finalize_daemon(int message_queue_id) {
     print_log("[DAEMON] Exiting...\n");

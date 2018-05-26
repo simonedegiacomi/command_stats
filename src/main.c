@@ -44,7 +44,7 @@ int main (int argc, char *argv[]) {
 		start_daemon();
 	}
 
-	if (arguments->command == NULL) {
+	if (arguments->command == NULL || strlen(arguments->command) <= 0) {
 		program_fail("No command specified. Use --help to see usage.\n");
 	}
 
@@ -83,10 +83,8 @@ Arguments * parse_arguments(int argc, char **argv) {
 			arguments->print_help = TRUE;
 
 		} else if (strcmp(argv[i], "--log_file") == 0 && next_argument_exists) {
-			const char *abs_path = realpath(argv[++i], NULL);
-			if (abs_path != NULL) {
-				arguments->log_file_path = abs_path;
-			}
+			// TODO: If abs, do not chdir into tool wd
+			arguments->log_file_path = argv[++i];
 
 		} else if (strcmp(argv[i], "--options") == 0 && next_argument_exists) {
 			arguments->log_options = argv[++i];
@@ -110,9 +108,9 @@ Arguments * parse_arguments(int argc, char **argv) {
 }
 
 void print_help () {
-	printf("NAME OF TOOL\n\n");
+	printf("command_stats\n\n");
 	printf("Usage:\n");
-	printf("./run <options> <command>\n");
+	printf("command_stats <options> <command>\n");
 	printf("\nOptions:\n");
 	printf("\t--help\t\tPrint this message;\n");
 	printf("\t--log_file\tSpecify log file path;\n");
