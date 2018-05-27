@@ -84,22 +84,22 @@ Arguments * parse_arguments(int argc, char **argv) {
 	for (i = 1; i < argc; i++) {
 		BOOL next_argument_exists = (i + 1) < argc;
 
-		if (strcmp(argv[i], "--help") == 0) {
+		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
 			arguments->print_help = TRUE;
 
-		} else if (strcmp(argv[i], "--log_file") == 0 && next_argument_exists) {
+		} else if ((strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--log-file") == 0) && next_argument_exists) {
 			arguments->log_file_path = argv[++i];
 
-		} else if (strcmp(argv[i], "--options") == 0 && next_argument_exists) {
+		} else if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--options") == 0) && next_argument_exists) {
 			arguments->log_options = argv[++i];
 
-		} else if (strcmp(argv[i], "--format") == 0 && next_argument_exists) {
+		} else if ((strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--format") == 0) && next_argument_exists) {
 			arguments->format = argv[++i];
 
-		} else if (strcmp(argv[i], "--verbose") == 0) {
+		} else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
 			enable_logging();
 
-		} else if (strcmp(argv[i], "--stop_daemon") == 0) {
+		} else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--stop-daemon") == 0) {
 			arguments->stop_daemon = TRUE;
 
 		} else {
@@ -112,28 +112,32 @@ Arguments * parse_arguments(int argc, char **argv) {
 }
 
 void print_help () {
-	printf("command_stats\n\n");
+	printf("\n    command_stats - log execution statistics of shell commands\n\n");
+	
 	printf("Usage:\n");
-	printf("command_stats <options> <command>\n");
+	printf("    command_stats [options] [command]\n");
+	
 	printf("\nOptions:\n");
-	printf("\t--help\t\tPrint this message;\n");
-	printf("\t--log_file\tSpecify log file path;\n");
-	printf("\t--format\tChoose output format (TXT, CSV or HTML);\n");
-	printf("\t--options\tChoose what to include in the log file. Available options are:\n");
-
-	printf("\t\t* pid: Process ID;\n");
-	printf("\t\t* invocation_failed: True if the executable couldn't start;\n");
-	printf("\t\t* exit_code: Exit code;\n");
-	printf("\t\t* start_time: Clock starting time;\n");
-	printf("\t\t* end_time: Clock ending time of the execution;\n");
-	printf("\t\t* total_time: Total clock time that the executable was running;\n");
-	printf("\t\t* user_cpu_time: Total cpu time effectively used in user mode;\n");
-	printf("\t\t* system_cpu_time: Total cpu time effectively used in kernel mode;\n");
-	printf("\t\t* maximum_resident_set_size: Memory of the executable that was in RAM;\n");
-
-
-    printf("\t--verbose\tEnable logging of the tool;\n");
-    printf("\t--stop_daemon\tStops the writer daemon if running;\n");
+	printf("    -h, --help         Print this message;\n");
+	printf("    -l, --log-file     Specify log file path;\n");
+	printf("    -f, --format       Choose output format (TXT, CSV or HTML);\n");
+	printf("    -o, --options      Choose what to include in the log file, see \"Arguments\n");
+	printf("                       for --options\" section for available options;\n");
+    printf("    -v, --verbose      Enable logging of the tool;\n");
+    printf("    -s, --stop-daemon  Stop the writer daemon if running;\n");
+	
+	printf("\nArguments for --options:\n");
+	printf("    Specify the options needed separated by commas, with no spaces:\n");
+	printf("        * pid:                Process ID;\n");
+	printf("        * invocation_failed:  True if the executable couldn't start;\n");
+	printf("        * exit_code:          Exit code;\n");
+	printf("        * start_time:         Clock starting time;\n");
+	printf("        * end_time:           Clock ending time of the execution;\n");
+	printf("        * total_time:         Total clock time that the executable was running;\n");
+	printf("        * user_cpu_time:      Total cpu time effectively used in user mode;\n");
+	printf("        * system_cpu_time:    Total cpu time effectively used in kernel mode;\n");
+	printf("        * maximum_resident_set_size:\n");
+	printf("                              Memory of the executable that was in RAM;\n\n");
 }
 
 /**
