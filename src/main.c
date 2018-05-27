@@ -86,7 +86,7 @@ Arguments * parse_arguments(int argc, char **argv) {
 		if (strcmp(argv[i], "--help") == 0) {
 			arguments->print_help = TRUE;
 
-		} else if (strcmp(argv[i], "--log_file") == 0 && next_argument_exists) {
+		} else if (strcmp(argv[i], "--log-file") == 0 && next_argument_exists) {
 			arguments->log_file_path = argv[++i];
 
 		} else if (strcmp(argv[i], "--options") == 0 && next_argument_exists) {
@@ -98,7 +98,7 @@ Arguments * parse_arguments(int argc, char **argv) {
 		} else if (strcmp(argv[i], "--verbose") == 0) {
 			enable_logging();
 
-		} else if (strcmp(argv[i], "--stop_daemon") == 0) {
+		} else if (strcmp(argv[i], "--stop-daemon") == 0) {
 			arguments->stop_daemon = TRUE;
 
 		} else {
@@ -116,7 +116,7 @@ void print_help () {
 	printf("command_stats <options> <command>\n");
 	printf("\nOptions:\n");
 	printf("\t--help\t\tPrint this message;\n");
-	printf("\t--log_file\tSpecify log file path;\n");
+	printf("\t--log-file\tSpecify log file path;\n");
 	printf("\t--format\tChoose output format (TXT, CSV or HTML);\n");
 	printf("\t--options\tChoose what to include in the log file. Available options are:\n");
 
@@ -133,7 +133,7 @@ void print_help () {
 
 
     printf("\t--verbose\tEnable logging of the tool;\n");
-    printf("\t--stop_daemon\tStops the writer daemon if running;\n");
+    printf("\t--stop-daemon\tStops the writer daemon if running;\n");
 }
 
 /**
