@@ -79,15 +79,12 @@ SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_
 
         if (res == REG_NOMATCH) {
             to_copy = strlen(obs_str);
-            printf("OBS: %s tc %d\n", obs_str, to_copy);
         } else {
             to_copy = (size_t) match->rm_so;
-            printf("SO: %d\tEO: %d\n", match->rm_so, match->rm_eo);
         }
 
         split->sub_strings[i] = strndup(start, to_copy);
 
-        printf("1 OBS: %s %d\n", obs_str, match->rm_eo);
         obs_str += match->rm_eo;
         str += match->rm_eo;
     }

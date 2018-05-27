@@ -84,9 +84,6 @@ void should_parse_ls_pipe_wc_pipe_wc() {
 }
 
 void should_parse_pipe_without_spaces() {
-    printf("\n\n\n\n");
-
-
     const char *command = "ls|wc";
     Node *parsed = create_tree_from_string(command);
 
@@ -208,7 +205,7 @@ void should_parse_semicolon() {
 }
 
 void should_parse_brackets() {
-    char *command = "(true && true) || true";
+    char *command = "(true && false) || true";
     Node *parsed = create_tree_from_string(command);
 
     char *trueNodeArgs[] = {"true"};
@@ -222,13 +219,24 @@ void should_parse_brackets() {
             }
         }
     };
+    char *falseNodeArgs[] = {"false"};
+    Node false_node = {
+        .type = ExecutableNode_T,
+        .value = {
+            .executable = {
+                .path = "false",
+                .argc = 1,
+                .argv = falseNodeArgs
+            }
+        }
+    };
     Node *and_operands[] = {&true_node, &true_node};
     Node and_node = {
         .type = AndNode_T,
         .value = {
             .operands = {
                 .count = 2,
-                .nodes = and_operands
+                .nodes = (Node*[]) {&true_node, &false_node}
             }
         }
     };
@@ -248,6 +256,9 @@ void should_parse_brackets() {
 }
 
 void should_parse_inner_brackets()  {
+    printf("\n\n\n\n");
+
+
     char *command = "(true && (true && true) && true)";
     Node *parsed = create_tree_from_string(command);
 

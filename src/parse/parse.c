@@ -110,6 +110,8 @@ void initialize_regexes() {
 
 
 Node * create_tree_from_string (const char *raw_string) {
+    printf("\n\n\n%s\n", raw_string);
+
     Node *tree = create_node_from_string(raw_string);
     apply_builtin(tree);
     return tree;
@@ -121,6 +123,8 @@ Node * create_node_from_string(const char *raw_string) {
 
     RedirectSplit   *string_and_redirects   = create_split_command_from_redirect(raw_string);
     const char      *string                 = remove_brackets_if_alone(string_and_redirects->command);
+
+    printf("%s -> brackets removed: %s.\n", raw_string, string);
 
 
     int i;
@@ -156,8 +160,70 @@ Node * create_node_from_string(const char *raw_string) {
     return parsed;
 }
 
+int count_occurrences (const char *string, char to_find) {
+    int count = 0;
+    while (*string != '\0') {
+        if (*string == to_find) {
+            count++;
+        }
+        string++;
+    }
+    return 0;
+}
 
+/**
+ * Return a new string (that can be freed using free) without the brackets if
+ * they are only around the start and the end of the string.
+ * Examples:
+ * - (true && false) => true && false
+ * - ((true) && false) => (true) && false
+ * - (true) && (false) => (true) && (false)
+ */
 const char * remove_brackets_if_alone(const char *str) {
+    char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
+    const regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
+
+    // Remove brackets using regex
+    regmatch_t matches[2];
+    int res = regexec(regex, str, 2, matches, 0);
+    regmatch_t *match = &matches[1];
+
+    if (res != REG_NOMATCH) {
+        const char *without_brackets = create_string_from_match(str, match);
+
+        // Check if the brakets were only at the start and end of the string,
+        // checking if now some brackets group are broken
+        int i;
+        int open = 0, close = 0;
+        BOOL broken = FALSE;
+        for (i = 0; i < strlen(without_brackets) && !broken; i++) {
+            if (without_brackets[i] == '\\') { // skip backslash
+                i++; // skip also next character
+            } else {
+
+                if (without_brackets[i] == '(') {
+                    open++;
+                } else if (without_brackets[i] == ')') {
+                    close++;
+                    if (close > open) {
+                        broken = TRUE;
+                    }
+                }
+            }
+        }
+
+        if (!broken) {
+            return without_brackets;
+        } else {
+
+        }
+    }
+
+    regfree((regex_t *) regex);
+
+    return strdup(str);
+
+    /*
     //char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
     char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\(((\\\\\\(|[^\\(\\)]|\\\\\\))*)\\)[ ]*$";
     const int COMMAND_GROUP = 1;
@@ -174,7 +240,26 @@ const char * remove_brackets_if_alone(const char *str) {
 
     regfree((regex_t *) regex);
 
-    return strdup(str);
+    return strdup(str);*/
+
+    /*
+    //char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
+    char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\(((\\\\\\(|[^\\(\\)]|\\\\\\))*)\\)[ ]*$";
+    const int COMMAND_GROUP = 1;
+
+    const regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
+
+    regmatch_t matches[3];
+    int res = regexec(regex, str, 3, matches, 0);
+    regmatch_t *match = &matches[COMMAND_GROUP];
+
+    if (res != REG_NOMATCH) {
+        return create_string_from_match(str, match);
+    }
+
+    regfree((regex_t *) regex);
+
+    return strdup(str);*/
 }
 
 

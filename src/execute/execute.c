@@ -453,7 +453,6 @@ void assign_results (Node *node, int exit_code, struct rusage *statistic) {
     node->result->user_cpu_time_used        = statistic->ru_utime;
     node->result->system_cpu_time_used      = statistic->ru_stime;
     node->result->maximum_resident_set_size = statistic->ru_maxrss;
-    node->result->invocation_failed         = FALSE;
 }
 
 

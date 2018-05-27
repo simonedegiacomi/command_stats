@@ -55,7 +55,7 @@ int count_executables_in_tree (Node *node) {
 
 ExecutionResult *create_execution_result() {
     ExecutionResult *res = malloc(sizeof(ExecutionResult));
-
+    res->invocation_failed = FALSE;
     res->start_time = get_current_time();
 
     return res;
