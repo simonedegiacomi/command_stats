@@ -23,7 +23,7 @@ void txt_pid_to_string(PrinterContext *context, Node *node) {
 }
 
 void txt_exit_code_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "Exit Code:\t%d\n", node->result->exit_code);
+    fprintf(context->out, "Exit Code:\t%d\n", WEXITSTATUS(node->result->exit_code));
 }
 
 void txt_execution_failed_to_string(PrinterContext *context, Node *node) {

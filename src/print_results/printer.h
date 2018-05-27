@@ -79,6 +79,7 @@ typedef void (*ToString) (PrinterContext *context, Node *node);
 typedef struct Printer {
     ToString head;
     ToString executable_head;
+    ToString enter_operand_node;
 
 
     ToString pid_to_string;
@@ -91,8 +92,10 @@ typedef struct Printer {
     ToString system_cpu_time_to_string;
     ToString maximum_resident_set_size_to_string;
 
-    ToString foot;
     ToString executable_foot;
+    ToString exit_operand_node;
+    ToString foot;
+
 } Printer;
 
 

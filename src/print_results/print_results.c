@@ -7,6 +7,7 @@
 #include "txt.h"
 #include "../common/syscalls_wrappers.h"
 #include "csv.h"
+#include "html.h"
 
 typedef struct PrinterName {
     const char  *name;
@@ -21,6 +22,10 @@ PrinterName printers [] = {
     {
         .name = "csv",
         .printer = &CsvPrinter
+    },
+    {
+        .name = "html",
+        .printer = &HtmlPrinter
     }
 };
 const int printers_count = sizeof(printers) / sizeof(PrinterName);
@@ -103,11 +108,20 @@ void print_results_root(Node *root, Printer *printer, PrinterContext *context) {
 
 void print_results_rec(Node *node, Printer *printer, PrinterContext *context) {
     if (is_operand_node(node)) {
+        if (printer->enter_operand_node != NULL) {
+            printer->enter_operand_node(context, node);
+        }
+
         OperandsNode *operandNode;
         operandNode = &(node->value.operands);
         int i;
         for (i = 0; i < operandNode->count; i++) {
             print_results_rec(operandNode->nodes[i], printer, context);
+        }
+
+
+        if (printer->exit_operand_node != NULL) {
+            printer->exit_operand_node(context, node);
         }
     } else {
         print_executable_node(node, printer, context);

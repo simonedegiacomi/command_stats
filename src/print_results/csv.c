@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <memory.h>
+#include <sys/wait.h>
 #include "csv.h"
 
 static BOOL prevouse_line = FALSE;
@@ -51,7 +52,7 @@ void csv_pid_to_string(PrinterContext *context, Node *node) {
 }
 
 void csv_exit_code_to_string(PrinterContext *context, Node *node) {
-    print_csv_value(context, "%d", node->result->exit_code);
+    print_csv_value(context, "%d", WEXITSTATUS(node->result->exit_code));
 }
 
 void csv_execution_failed_to_string(PrinterContext *context, Node *node) {
