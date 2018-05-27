@@ -45,7 +45,7 @@ void destroy_stream (Stream *stream) {
 
         // TODO: hehe, questo non è facile...
     } else {
-        printf("fd stream %d\n", stream);
+        //printf("fd stream %d\n", stream);
     }
     free(stream);
     printf("morto");

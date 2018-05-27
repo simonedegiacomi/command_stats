@@ -386,7 +386,7 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
         pipe->nodes[i] = create_node_from_string(pieces->sub_strings[i]);
     }
 
-    printf("AAAAAA %d\n", node->std_in);
+    //printf("AAAAAA %d\n", node->std_in);
 
     return node;
 }

@@ -112,7 +112,7 @@ Stream *create_std_stream(int direction) {
     Stream *stream = malloc(sizeof(Stream));
     stream->type = FileDescriptorStream_T;
     stream->file_descriptor = direction;
-    printf("all str %d\n", stream);
+    //printf("all str %d\n", stream);
     return stream;
 }
 
