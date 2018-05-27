@@ -230,7 +230,6 @@ void should_parse_brackets() {
             }
         }
     };
-    Node *and_operands[] = {&true_node, &true_node};
     Node and_node = {
         .type = AndNode_T,
         .value = {
