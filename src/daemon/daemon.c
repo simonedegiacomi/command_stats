@@ -115,7 +115,7 @@ void acquire_lock_or_exit() {
 
     struct flock lock = get_flock_for_lock();
     if (fcntl(lock_fd, F_SETLK, &lock) == -1) {
-        print_log("[DAEMON] Another daemon is already running, exiting");
+        print_log("[DAEMON] Another daemon is already running, exiting\n");
         exit(0);
     }
 }
