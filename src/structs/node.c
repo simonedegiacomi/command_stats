@@ -218,17 +218,14 @@ void destroy_node (Node *node) {
     }
 
     if (node->std_in != NULL) {
-        printf("in\n");
         destroy_stream(node->std_in);
     }
 
     if (node->std_out != NULL) {
-        printf("out\n");
         destroy_stream(node->std_out);
     }
 
     if (node->result != NULL) {
-        printf("res\n");
         destroy_result(node->result);
     }
 

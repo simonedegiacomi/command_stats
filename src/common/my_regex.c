@@ -49,10 +49,10 @@ int count_occurrences_of_regex (const char *string, const regex_t *delimiter) {
 }
 
 SplitResult * split_string(const char *string, const regex_t *delimiter) {
-    return split_obfuscated_string(string, delimiter, string);
+    return split_obfuscated_string(string, delimiter, 0, string);
 }
 
-SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, const char *string) {
+SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, int group, const char *string) {
     int operators_count = count_occurrences_of_regex(obfuscated_string, delimiter);
 
     int pieces = operators_count + 1;
@@ -64,23 +64,32 @@ SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_
     int i;
     const char *obs_str = obfuscated_string;
     const char *str = string;
-    regmatch_t match;
+
+    size_t matches_size = (size_t) group + 1;
+    regmatch_t *matches = malloc(matches_size * sizeof(regmatch_t));
+
+
     for (i = 0; i < pieces; i++) {
-        int res = regexec(delimiter, obs_str, 1, &match, 0);
+        int res = regexec(delimiter, obs_str, matches_size, matches, 0);
+
+        regmatch_t *match = &matches[group];
 
         const char *start = str;
         size_t to_copy;
 
         if (res == REG_NOMATCH) {
             to_copy = strlen(obs_str);
+            printf("OBS: %s tc %d\n", obs_str, to_copy);
         } else {
-            to_copy = (size_t) match.rm_so;
+            to_copy = (size_t) match->rm_so;
+            printf("SO: %d\tEO: %d\n", match->rm_so, match->rm_eo);
         }
 
         split->sub_strings[i] = strndup(start, to_copy);
 
-        obs_str += match.rm_eo;
-        str += match.rm_eo;
+        printf("1 OBS: %s %d\n", obs_str, match->rm_eo);
+        obs_str += match->rm_eo;
+        str += match->rm_eo;
     }
 
     return split;

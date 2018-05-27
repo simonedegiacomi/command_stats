@@ -40,7 +40,6 @@ void should_parse_ls_with_two_arguments() {
 void should_parse_ls_pipe_wc_pipe_wc() {
     char *input = "ls -lah | wc | wc";
     Node *parsed = create_tree_from_string(input);
-    printf("%d\n", parsed->std_in);
 
     char **lsArgs = malloc(2 * sizeof(char *));
     lsArgs[0] = "ls";
@@ -81,10 +80,48 @@ void should_parse_ls_pipe_wc_pipe_wc() {
     };
 
     check_tree_equals(&expected, parsed);
+    //destroy_node(parsed);
+}
+
+void should_parse_pipe_without_spaces() {
+    printf("\n\n\n\n");
 
 
-    printf("%d\n", parsed->std_in);
-    destroy_node(parsed);
+    const char *command = "ls|wc";
+    Node *parsed = create_tree_from_string(command);
+
+    Node expected = {
+        .type = PipeNode_T,
+        .value = {
+            .operands = {
+                .count = 2,
+                .nodes = (Node*[]){
+                    &(Node){
+                        .type = ExecutableNode_T,
+                        .value = {
+                            .executable = {
+                                .path = "ls",
+                                .argc = 1,
+                                .argv = (char*[]) {"ls"}
+                            }
+                        }
+                    },
+                    &(Node){
+                        .type = ExecutableNode_T,
+                        .value = {
+                            .executable = {
+                                .path = "wc",
+                                .argc = 1,
+                                .argv = (char*[]) {"wc"}
+                            }
+                        }
+                    }
+                },
+                .appender = NULL
+            }
+        }
+    };
+    check_tree_equals(&expected, parsed);
 }
 
 void should_parse_and() {
@@ -170,7 +207,7 @@ void should_parse_semicolon() {
     check_tree_equals(&expected, parsed);
 }
 
-void should_parse_parentesis() {
+void should_parse_brackets() {
     char *command = "(true && true) || true";
     Node *parsed = create_tree_from_string(command);
 
@@ -209,6 +246,75 @@ void should_parse_parentesis() {
 
     check_tree_equals(&or_node, parsed);
 }
+
+void should_parse_inner_brackets()  {
+    char *command = "(true && (true && true) && true)";
+    Node *parsed = create_tree_from_string(command);
+
+    Node expected = {
+        .type = AndNode_T,
+        .value = {
+            .operands = {
+                .count = 3,
+                .nodes = (Node*[]) {
+                    &(Node) {
+                        .type = ExecutableNode_T,
+                        .value = {
+                            .executable = {
+                                .path = "true",
+                                .argc = 1,
+                                .argv = (char*[]){"true"}
+                            }
+                        }
+                    },
+                    &(Node) {
+                        .type = AndNode_T,
+                        .value = {
+                            .operands = {
+                                .count = 2,
+                                .nodes = (Node*[]) {
+                                    &(Node) {
+                                        .type = ExecutableNode_T,
+                                        .value = {
+                                            .executable = {
+                                                .path = "true",
+                                                .argc = 1,
+                                                .argv = (char*[]){"true"}
+                                            }
+                                        }
+                                    },
+                                    &(Node) {
+                                        .type = ExecutableNode_T,
+                                        .value = {
+                                            .executable = {
+                                                .path = "true",
+                                                .argc = 1,
+                                                .argv = (char*[]){"true"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    &(Node) {
+                        .type = ExecutableNode_T,
+                        .value = {
+                            .executable = {
+                                .path = "true",
+                                .argc = 1,
+                                .argv = (char*[]){"true"}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    check_tree_equals(&expected, parsed);
+}
+
 
 void should_parse_redirect() {
     char *command = "ls > file.txt";
@@ -382,12 +488,14 @@ void run_parser_test() {
     should_parse_ls_with_argument();
     should_parse_ls_with_two_arguments();
     should_parse_ls_pipe_wc_pipe_wc();
+    should_parse_pipe_without_spaces();
 
     should_parse_and();
     should_parse_or();
     should_parse_semicolon();
 
-    should_parse_parentesis();
+    should_parse_brackets();
+    should_parse_inner_brackets();
     should_parse_redirect();
     should_parse_and_inside_brackets_with_pipe(); // ma va davvero???
 

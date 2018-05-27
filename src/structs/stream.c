@@ -48,5 +48,4 @@ void destroy_stream (Stream *stream) {
         //printf("fd stream %d\n", stream);
     }
     free(stream);
-    printf("morto");
 }

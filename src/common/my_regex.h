@@ -16,7 +16,7 @@ int count_occurrences_of_regex(const char *string, const regex_t *delimiter);
 
 SplitResult *split_string(const char *string, const regex_t *delimiter);
 
-SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, const char *string);
+SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, int group, const char *string);
 
 void destroy_split(SplitResult *to_destroy);
 

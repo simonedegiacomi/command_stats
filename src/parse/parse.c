@@ -25,7 +25,6 @@ RedirectSplit * create_split_command_from_redirect(const char *str);
 void redirect_streams_of_node_to_files(Node *parsed, RedirectSplit *string_and_redirects);
 
 const char * remove_brackets_if_alone(const char *str);
-SplitResult *split_obfuscated_string(const char *obfuscated_string, const regex_t *delimiter, const char *string);
 Node * create_node_from_string(const char *raw_string);
 
 // constructors of the nodes from the split strings
@@ -56,31 +55,31 @@ typedef struct PriorityMapEntry {
 static PriorityMapEntry priority_map[] = {
         {
                 // And
-                .separator_regex 	= "&&",
+                .separator_regex 	= "(&&)",
                 .handler 			= create_and_from_strings,
                 .single_split       = FALSE
         },
         {
                 // Or operator
-                .separator_regex	= "\\|\\|",
+                .separator_regex	= "(\\|\\|)",
                 .handler 			= create_or_from_strings,
                 .single_split       = FALSE
         },
         {
                 // Pipe operator
-                .separator_regex	= "[^|]\\|[^|]",
+                .separator_regex	= "[^|](\\|)[^|]",
                 .handler 			= create_pipe_from_strings,
                 .single_split       = FALSE
         },
         {
                 // Semicolon
-                .separator_regex    = ";",
+                .separator_regex    = "(;)",
                 .handler            = create_semicolon_from_strings,
                 .single_split       = FALSE
         },
         {
                 // Executable
-                .separator_regex    = "$",
+                .separator_regex    = "($)",
                 .handler            = create_executable_from_string,
                 .single_split       = TRUE
         }
@@ -132,6 +131,14 @@ Node * create_node_from_string(const char *raw_string) {
         SplitResult *pieces     = create_split_for_operator(string, entry->compiled_separator);
 
         if (entry->single_split || pieces->count > 1) {
+
+
+            printf("Separator %s\n", entry->separator_regex);
+            int j;
+            for (j = 0; j < pieces->count; j++) {
+                printf("%d: %s.\n", j, pieces->sub_strings[j]);
+            }
+
             parsed = entry->handler(pieces);
         }
 
@@ -276,7 +283,7 @@ const char * obfuscate_brackets_in_string(const char *str) {
 
 SplitResult * create_split_for_operator(const char *string, const regex_t *separator) {
     const char *obfuscated_string = obfuscate_brackets_in_string(string);
-    SplitResult * res = split_obfuscated_string(obfuscated_string, separator, string);
+    SplitResult * res = split_obfuscated_string(obfuscated_string, separator, 1, string);
     free((void *) obfuscated_string);
     return res;
 }
