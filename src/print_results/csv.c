@@ -47,6 +47,10 @@ void csv_executable_head(PrinterContext *context, Node *node) {
 }
 
 
+void csv_executed_to_string(PrinterContext *context, Node *node) {
+
+}
+
 void csv_pid_to_string(PrinterContext *context, Node *node) {
     print_csv_value(context, "%d", node->pid);
 }

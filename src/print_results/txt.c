@@ -18,6 +18,10 @@ void txt_executable_head(PrinterContext *context, Node *node) {
 }
 
 
+void txt_executed_to_string(PrinterContext *context, Node *node) {
+
+}
+
 void txt_pid_to_string(PrinterContext *context, Node *node) {
     fprintf(context->out, "PID:\t%d\n", node->pid);
 }
