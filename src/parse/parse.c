@@ -8,9 +8,9 @@
 
 /** Private functions and structures declaration */
 void initialize_regexes();
+void finalize_regexes();
 
 SplitResult * create_split_for_operator(const char *string, const regex_t *separator);
-
 
 // contains the substring of a command and, if any, the file names to which redirect the input/output
 typedef struct RedirectSplit {
@@ -43,7 +43,7 @@ typedef struct PriorityMapEntry {
     // Regex that matches the separator of the operand
     char 		    *separator_regex;
 
-    const regex_t*  compiled_separator;
+    regex_t         *compiled_separator;
 
     // True if the handler can be called even if the SplitResult contains only a string
     BOOL            single_split;
@@ -103,15 +103,26 @@ void initialize_regexes() {
     for (i = 0; i < operators_count; i++) {
         priority_map[i].compiled_separator = compile_regex(priority_map[i].separator_regex);
     }
+}
 
-    // other regex
+void finalize_parser () {
+    if (!parser_initialized) {
+        return;
+    }
+    finalize_regexes();
+    parser_initialized = FALSE;
+}
 
+void finalize_regexes() {
+    // priority map regexes
+    int i;
+    for (i = 0; i < operators_count; i++) {
+        regfree(priority_map[i].compiled_separator);
+    }
 }
 
 
 Node * create_tree_from_string (const char *raw_string) {
-    printf("\n\n\n%s\n", raw_string);
-
     Node *tree = create_node_from_string(raw_string);
     apply_builtin(tree);
     return tree;
@@ -124,9 +135,6 @@ Node * create_node_from_string(const char *raw_string) {
     RedirectSplit   *string_and_redirects   = create_split_command_from_redirect(raw_string);
     const char      *string                 = remove_brackets_if_alone(string_and_redirects->command);
 
-    printf("%s -> brackets removed: %s.\n", raw_string, string);
-
-
     int i;
     Node *parsed = NULL;
     for (i = 0; i < operators_count && parsed == NULL; i++) {
@@ -135,14 +143,6 @@ Node * create_node_from_string(const char *raw_string) {
         SplitResult *pieces     = create_split_for_operator(string, entry->compiled_separator);
 
         if (entry->single_split || pieces->count > 1) {
-
-
-            printf("Separator %s\n", entry->separator_regex);
-            int j;
-            for (j = 0; j < pieces->count; j++) {
-                printf("%d: %s.\n", j, pieces->sub_strings[j]);
-            }
-
             parsed = entry->handler(pieces);
         }
 
@@ -160,16 +160,7 @@ Node * create_node_from_string(const char *raw_string) {
     return parsed;
 }
 
-int count_occurrences (const char *string, char to_find) {
-    int count = 0;
-    while (*string != '\0') {
-        if (*string == to_find) {
-            count++;
-        }
-        string++;
-    }
-    return 0;
-}
+
 
 /**
  * Return a new string (that can be freed using free) without the brackets if
@@ -181,12 +172,14 @@ int count_occurrences (const char *string, char to_find) {
  */
 const char * remove_brackets_if_alone(const char *str) {
     char *const MATCH_STRING_INSIDE_BRACKETS_IF_ALONE = "^[ ]*\\((.*)\\)[ ]*$";
-    const regex_t *regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
+    regex_t *string_inside_brackets_regex = compile_regex(MATCH_STRING_INSIDE_BRACKETS_IF_ALONE);
 
     // Remove brackets using regex
     regmatch_t matches[2];
-    int res = regexec(regex, str, 2, matches, 0);
+    int res = regexec(string_inside_brackets_regex, str, 2, matches, 0);
     regmatch_t *match = &matches[1];
+
+    regfree(string_inside_brackets_regex);
 
     if (res != REG_NOMATCH) {
         const char *without_brackets = create_string_from_match(str, match);
@@ -215,11 +208,11 @@ const char * remove_brackets_if_alone(const char *str) {
         if (!broken) {
             return without_brackets;
         } else {
-
+            free((void *) without_brackets);
         }
     }
 
-    regfree((regex_t *) regex);
+    regfree((regex_t *) string_inside_brackets_regex);
 
     return strdup(str);
 
@@ -271,7 +264,7 @@ RedirectSplit * create_redirect_with_command_from_string (const char *str) {
     RedirectSplit *split = split1;
 
     char *const MATCH_REDIRECT_AND_FILE_NAME_IF_LAST = "((>>|>|<) *([a-zA-Z\\.]*))+$";
-    const regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
+    regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
 
     regmatch_t match;
     int res = regexec(regex, str, 1, &match, 0);
@@ -288,12 +281,14 @@ RedirectSplit * create_redirect_with_command_from_string (const char *str) {
         split->command = strdup(str);
     }
 
+    regfree(regex);
+
     return split;
 }
 
 void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const char *string) {
     char *const MATCH_REDIRECT_AND_FILE_NAME_IF_LAST = "((>>|>|<) *([a-zA-Z\\.]*))+$";
-    const regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
+    regex_t *regex = compile_regex(MATCH_REDIRECT_AND_FILE_NAME_IF_LAST); // explain groups and SPACE*
 
     regmatch_t matches[4];
     const char *str;
@@ -324,6 +319,8 @@ void fill_redirect_with_redirects_and_file_names(RedirectSplit *split, const cha
         stream->type                 = FileStream_T;
         stream->options.file.name    = file_name;
     }
+
+    regfree(regex);
 }
 
 
@@ -381,7 +378,7 @@ char * clear_argument (const char *to_clear) {
 
     const char *CLEAR_ARGUMENTS = "([^\\\\]+)";
 
-    const regex_t *regex = compile_regex(CLEAR_ARGUMENTS);
+    regex_t *regex = compile_regex(CLEAR_ARGUMENTS);
     regmatch_t match;
 
     char *res = malloc(strlen(to_clear) * sizeof(char));
@@ -394,6 +391,7 @@ char * clear_argument (const char *to_clear) {
 
     }
 
+    regfree(regex);
 
     return res;
 }
@@ -401,7 +399,7 @@ char * clear_argument (const char *to_clear) {
 
 Node * create_executable_from_string (SplitResult *pieces) {
     const char *MATCH_ARGUMENTS = "( *\"(([^\"\\\\]|\\\\.)+)\" *)|( *([^\"][^ ]*) *)";
-    const regex_t *regex = compile_regex(MATCH_ARGUMENTS);
+    regex_t *regex = compile_regex(MATCH_ARGUMENTS);
 
     const char *string = pieces->sub_strings[0];
     int arguments_count = count_occurrences_of_regex(string, regex);
@@ -461,6 +459,8 @@ Node * create_executable_from_string (SplitResult *pieces) {
     node->value.executable.argv = argv;
     node->value.executable.argc = arguments_count - joined_arguments;
 
+    regfree(regex);
+
     return node;
 }
 
@@ -477,9 +477,6 @@ Node * create_pipe_from_strings (SplitResult *pieces) {
     for (i = 0; i < pieces->count; i++) {
         pipe->nodes[i] = create_node_from_string(pieces->sub_strings[i]);
     }
-
-    //printf("AAAAAA %d\n", node->std_in);
-
     return node;
 }
 

@@ -14,7 +14,7 @@ typedef enum Attribute {
     TOTAL_TIME,
     USER_CPU_TIME,
     SYSTEM_CPU_TIME,
-    MAXIMUM_RESIDENT_SEGMENT_SIZE, // TODO: rename
+    MAXIMUM_RESIDENT_SEGMENT_SIZE
 } Attribute;
 
 typedef struct AttributeKeyword {
@@ -22,6 +22,7 @@ typedef struct AttributeKeyword {
     Attribute   value;
 } AttributeKeyword;
 
+// Association between keyword and enum
 static AttributeKeyword keywords[] = {
     {
         .keyword = "pid",
@@ -76,6 +77,9 @@ typedef struct PrinterContext {
 
 typedef void (*ToString) (PrinterContext *context, Node *node);
 
+/**
+ * Printer interface
+ */
 typedef struct Printer {
     ToString head;
     ToString executable_head;

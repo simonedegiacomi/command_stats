@@ -22,9 +22,9 @@ typedef struct Arguments {
     const char 	*format;
 } Arguments;
 
-Arguments * parse_arguments(int argc, char **argv);
-const char * concat_strings_with_spaces (char **strings, int count);
-void print_help();
+Arguments * 	parse_arguments				(int argc, char **argv);
+const char * 	concat_strings_with_spaces	(char **strings, int count);
+void 			print_help					();
 
 
 
@@ -39,6 +39,7 @@ int main (int argc, char *argv[]) {
 
     if (arguments->stop_daemon) {
         stop_daemon();
+		printf("Daemon stopped.\n");
         exit(0);
     } else {
 		start_daemon();
@@ -52,16 +53,20 @@ int main (int argc, char *argv[]) {
 	// Parse command
     initialize_parser();
 	Node *command_tree = create_tree_from_string(arguments->command);
+	finalize_parser();
     print_log("[RUN] Command successfully parsed\n");
 
 	// Execute the command
     execute(command_tree);
 
-
+	// Request pipe from daemon
     int log_fd = book_and_obtain_log_fd(arguments->log_file_path);
+
+    // Print logs
 	print_results(command_tree, log_fd, arguments->format, arguments->command,
 				  arguments->log_options);
 
+    // Exit with the same exit code as the root command
 	return command_tree->result->exit_code;
 }
 
@@ -83,7 +88,6 @@ Arguments * parse_arguments(int argc, char **argv) {
 			arguments->print_help = TRUE;
 
 		} else if (strcmp(argv[i], "--log_file") == 0 && next_argument_exists) {
-			// TODO: If abs, do not chdir into tool wd
 			arguments->log_file_path = argv[++i];
 
 		} else if (strcmp(argv[i], "--options") == 0 && next_argument_exists) {
@@ -133,12 +137,15 @@ void print_help () {
     printf("\t--stop_daemon\tStops the writer daemon if running;\n");
 }
 
-
+/**
+ * Utility to concatenate an array of string into a single string. Each string is
+ * separated by a space.
+ */
 const char * concat_strings_with_spaces (char **strings, int count) {
 	int i;
-	size_t size = (size_t) count; // spaces + null terminator
+	size_t size = (size_t) count; // n spaces + null terminator
 	for (i = 0; i < count; i++) {
-		size += strlen(strings[i]);
+		size += strlen(strings[i]); // length of each string
 	}
 
 	char *concatenated = malloc(size);

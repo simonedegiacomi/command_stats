@@ -4,6 +4,7 @@
 typedef enum DaemonizeResult {
     FAILED, SUCCESS_PARENT, SUCCESS_DAEMON
 } DaemonizeResult ;
+
 DaemonizeResult daemonize();
 
 #endif

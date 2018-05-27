@@ -256,9 +256,6 @@ void should_parse_brackets() {
 }
 
 void should_parse_inner_brackets()  {
-    printf("\n\n\n\n");
-
-
     char *command = "(true && (true && true) && true)";
     Node *parsed = create_tree_from_string(command);
 
@@ -496,6 +493,8 @@ void should_parse_command_with_useless_brackets () {
 
 void run_parser_test() {
     printf("[PARSER TEST] Start tests\n");
+    initialize_parser();
+
     should_parse_ls_with_argument();
     should_parse_ls_with_two_arguments();
     should_parse_ls_pipe_wc_pipe_wc();
@@ -515,6 +514,7 @@ void run_parser_test() {
 
     should_parse_command_with_useless_brackets();
 
+    finalize_parser();
     printf("[PARSER TEST] All test passed\n");
 }
 

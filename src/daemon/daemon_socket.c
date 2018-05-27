@@ -19,13 +19,12 @@ const int MAX_ATTEMPTS = 3;
 
 
 /** Private functions declaration */
-
-void initialize_booking_confirmation_receiver();
-void send_booking (const char *log_path);
-void wait_booking_confirmation ();
-void handle_booking_confirmation();
-void finalize_booking_confirmation_receiver();
-int open_booked_pipe();
+void    initialize_booking_confirmation_receiver    ();
+void    send_booking                                (const char *log_path);
+void    wait_booking_confirmation                   ();
+void    handle_booking_confirmation                 ();
+void    finalize_booking_confirmation_receiver      ();
+int     open_booked_pipe                            ();
 /**  End of private functions declaration */
 
 
@@ -45,7 +44,12 @@ struct flock get_flock_for_lock() {
     };
 }
 
-
+/**
+ * Send a message to the daemon specifying the path to which the tool wants to
+ * write the log.
+ * @param log_path path to file log
+ * @return
+ */
 int book_and_obtain_log_fd(const char *log_path) {
     initialize_booking_confirmation_receiver();
 
@@ -61,7 +65,6 @@ void initialize_booking_confirmation_receiver(){
     signal(SIGCONT, on_continue_signal);
     signal(SIGUSR1, on_continue_signal);
     signal(SIGUSR2, on_continue_signal);
-
 }
 
 void send_booking (const char *log_path) {
@@ -76,13 +79,20 @@ void send_booking (const char *log_path) {
         }
     };
 
-    // TODO: Explain
+    /**
+     * NOTE: log_path could be relative to the execution of the tool.
+     * To write to a relative path the daemon needs to be in the same directory
+     * of the tool. So we put in the message the current working directory of the
+     * tool and the log path.
+     * The maximum path length on Linux is 4096, so we use a char array of 4098
+     * and insert into it the cwd of the tool, a null terminator character and then
+     * the path of the log file (also terminating with the null character).
+     */
     getcwd(message.booking_info.log_path, MAX_LOG_PATH);
     size_t end = strlen(message.booking_info.log_path);
 
     // NOTE: Memory MUST be continue, we cannot use strdup or copy the pointer!
     strcpy(&message.booking_info.log_path[end + 1], log_path);
-
 
 
     my_msgsnd(message_queue_id, &message, sizeof(BookingInfo), 0);
@@ -93,8 +103,13 @@ void send_booking (const char *log_path) {
 
 void wait_booking_confirmation () {
     print_log("[DAEMON_SOCKET] Waiting for signal from daemon...");
-    while (daemon_response == -1) {	//https://www.gnu.org/software/libc/manual/html_node/Pause-Problems.html#Pause-Problems
+    while (daemon_response == -1) {
         sleep(1);
+
+        /**
+         * Note: don't use pause.
+         * See: https://www.gnu.org/software/libc/manual/html_node/Pause-Problems.html#Pause-Problems
+         */
         //pause();
     }
     print_log(" finally!\n");
@@ -128,7 +143,10 @@ int open_booked_pipe(){
     return my_open(stats_fifo_path, O_WRONLY);
 }
 
-
+/**
+ * Try to read the daemon pid. If fails try to restart the daemon.
+ * @return pid of daemon
+ */
 pid_t read_daemon_pid() {
 
 	int attempts;
@@ -138,7 +156,7 @@ pid_t read_daemon_pid() {
     for (attempts = 0; attempts < MAX_ATTEMPTS && !success; attempts++) {
         success = try_to_read_daemon_pid(&daemon_pid);
 
-        BOOL last_attempts = attempts == (MAX_ATTEMPTS - 1);
+        BOOL last_attempts = (attempts == (MAX_ATTEMPTS - 1));
         if (!success && !last_attempts) {
             print_log("[RUN] Can't read daemon pid, restarting daemon...\n");
             start_daemon();
@@ -147,13 +165,18 @@ pid_t read_daemon_pid() {
     }
 
     if (!success) {
-        program_fail("[RUN] Can't read daemon pid\n");
+        program_fail("Can't read daemon pid\n");
     } else {
         print_log("[DAEMON_SOCKET] Daemon is running with pid %d\n", daemon_pid);
     }
     return daemon_pid;
 }
 
+/**
+ * Try to read the daemon pid and return FALSE if fail.
+ * The daemon pid is read from the daemon flock lock.
+ * @param daemon_pid_dst where to write the daemon pid.
+ */
 BOOL try_to_read_daemon_pid(int *daemon_pid_dst) {
     int daemon_pid = -1;
     struct flock lock = get_flock_for_lock();
@@ -161,9 +184,12 @@ BOOL try_to_read_daemon_pid(int *daemon_pid_dst) {
 
     for (attempts = 0; attempts < MAX_ATTEMPTS && daemon_pid == -1; attempts++) {
 
+        // Open lock file in reading mode
         int lock_fd = open(lock_file_path, O_RDONLY);
 
-        if (lock_fd != -1) {
+        if (lock_fd != -1) { // File opened
+
+            // Simulate lock, to read the pid of the process that currently has the lock
             lock.l_pid = -1;
             fcntl(lock_fd, F_GETLK, &lock);
             daemon_pid = lock.l_pid;

@@ -73,8 +73,6 @@ void txt_maximum_resident_set_size_to_string(PrinterContext *context, Node *node
 
 
 
-
-
 void txt_executable_foot (PrinterContext *context, Node *node) {
     fprintf(context->out, "------------------------------------\n");
 }

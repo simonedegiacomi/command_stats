@@ -12,13 +12,6 @@ Stream * wrap_pipe_into_stream (PipeStream *pipe_stream, int direction) {
     return stream;
 }
 
-Stream ** wrap_stream_into_array (Stream *stream) {
-    Stream **streams = malloc(sizeof(stream));
-    streams[0] = stream;
-    return streams;
-}
-
-
 
 PipeStream *create_pipe() {
     PipeStream *stream = malloc(sizeof(PipeStream));
@@ -41,11 +34,7 @@ void destroy_stream (Stream *stream) {
 
         FileStream *file = &stream->options.file;
         free((void *) file->name);
-    } else if (stream->type == PipeStream_T) {
-
-        // TODO: hehe, questo non è facile...
-    } else {
-        //printf("fd stream %d\n", stream);
     }
+
     free(stream);
 }

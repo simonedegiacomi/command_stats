@@ -2,20 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 #include "my_regex.h"
+#include "common.h"
 
-const char *create_string_from_match(const char *str, const regmatch_t *match);
-
-
-const regex_t * compile_regex (const char *regex) {
+regex_t * compile_regex (const char *regex) {
     regex_t *compiled = malloc(sizeof(regex_t));
     int compile_res = regcomp(compiled, regex, REG_EXTENDED);
     if (compile_res != 0) {
         char error_str[1000];
         regerror(compile_res, compiled, error_str, sizeof(error_str));
-        fprintf(stderr, "[PARSER] Regex compilation failed: %s\n", error_str);
-
-
-        exit(-1);
+        program_fail("Regex compilation failed: %s\n", error_str);
     }
     return compiled;
 }
@@ -43,7 +38,7 @@ int count_occurrences_of_regex (const char *string, const regex_t *delimiter) {
                 string++;
             }
         }
-    };
+    }
 
     return count;
 }

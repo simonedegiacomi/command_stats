@@ -40,8 +40,6 @@ void csv_head(PrinterContext *context, Node *node) {
 }
 
 
-
-
 void csv_executable_head(PrinterContext *context, Node *node) {
 
 }

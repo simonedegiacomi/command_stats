@@ -22,9 +22,7 @@ static const char *lock_file_path = "/tmp/SO_project.lock";
 static const char *stats_fifo_path = "/tmp/SO_project.fifo";
 
 
-void print_message(Message message);
-
-
-int get_message_queue_id (pid_t daemon_pid);
+void print_message			(Message message);
+int get_message_queue_id 	(pid_t daemon_pid);
 
 #endif

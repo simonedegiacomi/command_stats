@@ -18,14 +18,13 @@
 #include "daemon_socket.h"
 
 /** Private functions declaration */
-void run_daemon_main();
-void acquire_lock_or_exit();
+void    run_daemon_main         ();
+void    acquire_lock_or_exit    ();
 
-BOOL file_exists (const char *name);
-void handle_message (Message *message);
-int initialize_daemon();
-void finalize_daemon(int message_queue_id);
-
+BOOL    file_exists             (const char *name);
+void    handle_message          (Message *message);
+int     initialize_daemon       ();
+void    finalize_daemon         (int message_queue_id);
 /** End of private functions declaration */
 
 /**
@@ -55,14 +54,16 @@ void start_daemon() {
 }
 
 
-
+/**
+ * Main function of the daemon
+ */
 void run_daemon_main() {
     int message_queue_id = initialize_daemon();
 
     while (!interrupt_signal) {
 		Message message;
 		ssize_t res = msgrcv(message_queue_id, &message, sizeof(BookingInfo), MESSAGE_TYPE, 0);
-        print_log("exit\n");
+
         if (res == -1 && errno != EINTR) {
             syscall_fail("Can't receive message from message queue");
         }
@@ -82,10 +83,11 @@ void run_daemon_main() {
 
 
 /**
- * Tries to acquire exclusive lock on the lock file and exit if the lock file is
- * already locked.
- * If the lock is successfully acquired, writes the daemon pid into the daemon
- * pid file and initializes the daemon.
+ * Initializes the daemon. It performs the following operations:
+ * 1. Try to acquire lock. If fail another daemon is already running;
+ * 2. Setup queue to receive messages;
+ * 3. Setup signal handlers;
+ * 4. Create pipe to which the tool will write data;
  * @return message queue id from which read BookingInfo from run clients.
  */
 int initialize_daemon() {
@@ -103,8 +105,8 @@ int initialize_daemon() {
 
 
 /**
- *
- * @return
+ * Tries to acquire exclusive lock on the lock file and exit if the lock file is
+ * already locked.
  */
 void acquire_lock_or_exit() {
     int lock_fd = open(lock_file_path, O_CREAT | O_RDWR, 0666);
@@ -120,21 +122,26 @@ void acquire_lock_or_exit() {
     }
 }
 
+/**
+ * Handles an incoming message from the tool, opening the file to which write the
+ * log and notifying the tool.
+ */
 void handle_message (Message *message) {
 
-    const char *tool_wd = message->booking_info.log_path;
-    size_t end = strlen(tool_wd);
-    const char *log_path = &message->booking_info.log_path[end + 1];
+    const char *tool_wd     = message->booking_info.log_path;
+    size_t end              = strlen(tool_wd);
+    const char *log_path    = &message->booking_info.log_path[end + 1];
 
+    // Change dir into the tool directory (we need to this because the usare may
+    // specify a relative path)
     chdir(tool_wd);
 
-    BOOL exists = file_exists(log_path);
+    // Check if the fiel exists and open it in write mode
+    BOOL exists         = file_exists(log_path);
+    int stats_log_fd    = open(log_path, O_CREAT | O_APPEND | O_WRONLY, 0666);
 
 
-    int stats_log_fd = open(log_path, O_CREAT | O_APPEND | O_WRONLY, 0666);
-
-
-    if (stats_log_fd == -1) {
+    if (stats_log_fd == -1) { // Can't open file
         print_log("[DAEMON] Sending SIGUSR2 to %d, can't open log file\n", message->booking_info.pid);
         kill(message->booking_info.pid, DAEMON_RESPONSE_ERROR_CANT_WRITE);
     } else {
@@ -147,8 +154,10 @@ void handle_message (Message *message) {
             kill(message->booking_info.pid, DAEMON_RESPONSE_OK_NEW_FILE);
         }
 
+        // Open pipe to read data from tool
         int stats_fifo_fd = my_open(stats_fifo_path, O_RDONLY);
 
+        // Copy data from tool to file
         copy_stream(stats_fifo_fd, stats_log_fd);
 
         my_close(stats_log_fd);

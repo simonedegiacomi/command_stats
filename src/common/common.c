@@ -7,14 +7,26 @@
 #include "common.h"
 #include "syscalls_wrappers.h"
 
-const int CTIME_BUFFER = 50;
+#define COPY_BUFFER     1024
 
-struct timespec get_current_time () {
-    struct timespec res;
-    clock_gettime(CLOCK_REALTIME, &res);
-    return res;
+/**
+ * Copies chunk data until the from stream is closed from the other side.
+ * NOTE: This function doesn't close any of the two file descriptors.
+ * @param from
+ * @param to
+ */
+void copy_stream (int from, int to) {
+    char buffer[COPY_BUFFER];
+    ssize_t read_res;
+    do {
+        read_res = read(from, buffer, sizeof(buffer));
+        if (read_res > 0) {
+            my_write(to, buffer, (size_t) read_res);
+        }
+    } while (read_res > 0);
 }
 
+/** Logging functions */
 static BOOL log_enabled = FALSE;
 
 void enable_logging () {
@@ -47,27 +59,10 @@ void syscall_fail(const char *message) {
 	exit(1);
 }
 
-/**
- * Copies chunk data until the from stream is closed from the other side.
- * NOTE: This function doesn't close any of the two file descriptors.
- * @param from
- * @param to
- */
-void copy_stream (int from, int to) {
-    const int BUFFER_SIZE = 1024;
-
-    char buffer[BUFFER_SIZE];
-    ssize_t read_res;
-    do {
-        read_res = read(from, buffer, sizeof(buffer));
-        if (read_res > 0) {
-            my_write(to, buffer, (size_t) read_res);
-        }
-    } while (read_res > 0);
-}
+/** End of logging functions */
 
 
-
+/** Time utilities */
 void print_timespec(struct timespec time, FILE *out) {
     double ms = (time.tv_nsec / 1000000.0);
 
@@ -88,3 +83,12 @@ void print_timeval(struct timeval time, FILE *out) {
 
     fprintf(out, "%d h %d m %d s %f ms", h, m, s, ms);
 }
+
+
+struct timespec get_current_time () {
+    struct timespec res;
+    clock_gettime(CLOCK_REALTIME, &res);
+    return res;
+}
+
+/** End of time utilities */

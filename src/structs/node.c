@@ -161,7 +161,7 @@ void remove_node_from_operands(Node *operands_node, Node *to_remove) {
     BOOL removed = FALSE;
     for (i = 0; i < operands->count; i++) {
         if (operands->nodes[i] == to_remove) {
-            destroy_node(operands->nodes[i]);
+            //destroy_node(operands->nodes[i]);
 
             removed = TRUE;
         } else if (removed) {
@@ -198,11 +198,9 @@ void destroy_node (Node *node) {
             destroy_appender(operands->appender);
         }
 
-        printf("-------");
     } else {
         ExecutableNode *executable = &node->value.executable;
         free(executable->path);
-
         for (i = 0; i < executable->argc; i++) { // NOTE: Last in null
             free(executable->argv[i]);
         }

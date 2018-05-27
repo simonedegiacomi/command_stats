@@ -5,6 +5,10 @@
 #include "builtin.h"
 #include "../structs/node.h"
 
+/**
+ * Ti modules preprocess the command tree to initialize built in commands and
+ * operators such as cd and file redirectors (es: >)
+ */
 
 /** Private functions declaration */
 void apply_cd_builtin (Node *root);
@@ -112,7 +116,6 @@ Stream *create_std_stream(int direction) {
     Stream *stream = malloc(sizeof(Stream));
     stream->type = FileDescriptorStream_T;
     stream->file_descriptor = direction;
-    //printf("all str %d\n", stream);
     return stream;
 }
 

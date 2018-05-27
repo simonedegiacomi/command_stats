@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <memory.h>
+#include <stdlib.h>
 #include "my_assert.h"
 #include "../src/parse/builtin.h"
 #include "../src/structs/node.h"
@@ -124,6 +125,10 @@ void should_wire_operands () {
 }
 
 void should_apply_cd() {
+    char **cd_argv = malloc(2 * sizeof(char*));
+    cd_argv[0] = strdup("cd");
+    cd_argv[1] = strdup("a");
+
     Node and = {
         .type = AndNode_T,
         .value = {
@@ -134,9 +139,9 @@ void should_apply_cd() {
                         .type = ExecutableNode_T,
                         .value = {
                             .executable = {
-                                .path = "cd",
+                                .path = strdup("cd"),
                                 .argc = 2,
-                                .argv = (char*[]){"cd", "a"},
+                                .argv = cd_argv,
                                 .cd = NULL,
                                 .cd_count = 0
                             }
