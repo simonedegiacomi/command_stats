@@ -18,8 +18,8 @@ typedef struct Message {
 } Message;
 
 
-static const char *lock_file_path = "/tmp/SO_project.lock";
-static const char *stats_fifo_path = "/tmp/SO_project.fifo";
+extern const char *lock_file_path;
+extern const char *stats_fifo_path;
 
 
 void print_message			(Message message);

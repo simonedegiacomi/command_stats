@@ -3,6 +3,7 @@
 #include <memory.h>
 #include <sys/wait.h>
 #include "csv.h"
+#include "../structs/node.h"
 
 #define CTIME_BUFFER 26
 
@@ -55,6 +56,7 @@ void print_csv_value (PrinterContext *context, const char *format, ...) {
 void csv_head(PrinterContext *context, Node *node) {
     previous_value = FALSE;
 
+    print_csv_value(context, "executable_name");
     int i;
     for (i = 0; i < context->attributes_count; i++) {
         print_csv_value(context, "%s", get_attribute_name(context->attributes[i]));
@@ -66,7 +68,7 @@ void csv_head(PrinterContext *context, Node *node) {
 
 
 void csv_executable_head(PrinterContext *context, Node *node) {
-
+    print_csv_value(context, "%s", node->value.executable.path);
 }
 
 

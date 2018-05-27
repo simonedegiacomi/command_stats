@@ -2,6 +2,11 @@
 #include "daemon_common.h"
 #include "../common/syscalls_wrappers.h"
 
+
+const char *lock_file_path = "/tmp/SO_project.lock";
+const char *stats_fifo_path = "/tmp/SO_project.fifo";
+
+
 void print_message(Message message) {
 	print_log("\tmessage_type: %ld\n", message.message_type);
 	print_log("\tbooking_info.pid: %d\n", message.booking_info.pid);
