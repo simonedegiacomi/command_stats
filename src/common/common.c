@@ -68,8 +68,19 @@ void copy_stream (int from, int to) {
 
 
 
-void print_time (struct timespec time, FILE *out) {
+void print_timespec(struct timespec time, FILE *out) {
     double ms = (time.tv_nsec / 1000000.0);
+
+    int h = time.tv_sec / (60 * 60);
+    int m = (time.tv_sec - (h * 60 * 60)) / 60;
+    int s = (time.tv_sec - (h * 60 * 60) - (m * 60));
+
+    fprintf(out, "%d h %d m %d s %f ms", h, m, s, ms);
+}
+
+
+void print_timeval(struct timeval time, FILE *out) {
+    double ms = (time.tv_usec / 1000.0);
 
     int h = time.tv_sec / (60 * 60);
     int m = (time.tv_sec - (h * 60 * 60)) / 60;

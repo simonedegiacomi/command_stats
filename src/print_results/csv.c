@@ -4,17 +4,17 @@
 #include <sys/wait.h>
 #include "csv.h"
 
-static BOOL prevouse_line = FALSE;
+static BOOL previous_value = FALSE;
 
 static const int CTIME_BUFFER = 26;
 void my_ctime (time_t start, char *buffer);
 
 
 void separate_argument(PrinterContext *context){
-    if (prevouse_line) {
+    if (previous_value) {
         fprintf(context->out, ",");
     } else {
-        prevouse_line = TRUE;
+        previous_value = TRUE;
     }
 }
 
@@ -28,7 +28,7 @@ void print_csv_value (PrinterContext *context, const char *format, ...) {
 }
 
 void csv_head(PrinterContext *context, Node *node) {
-    prevouse_line = FALSE;
+    previous_value = FALSE;
 
     int i;
     for (i = 0; i < context->attributes_count; i++) {
@@ -36,7 +36,7 @@ void csv_head(PrinterContext *context, Node *node) {
     }
 
     fprintf(context->out, "\n");
-    prevouse_line = FALSE;
+    previous_value = FALSE;
 }
 
 
@@ -86,19 +86,17 @@ void csv_end_time_to_string(PrinterContext *context, Node *node) {
 void csv_total_time_to_string(PrinterContext *context, Node *node) {
     separate_argument(context);
     struct timespec total_time = get_total_clock_time(node);
-    print_time(total_time, context->out);
+    print_timespec(total_time, context->out);
 }
 
 void csv_user_cpu_time_to_string(PrinterContext *context, Node *node) {
-    print_csv_value(context, "%ld .%06ld",
-            node->result->user_cpu_time_used.tv_sec,
-            (long) node->result->user_cpu_time_used.tv_usec);
+    separate_argument(context);
+    print_timeval(node->result->user_cpu_time_used, context->out);
 }
 
 void csv_system_cpu_time_to_string(PrinterContext *context, Node *node) {
-    print_csv_value(context, "%ld.%06ld",
-            node->result->system_cpu_time_used.tv_sec,
-            (long) node->result->user_cpu_time_used.tv_usec);
+    separate_argument(context);
+    print_timeval(node->result->system_cpu_time_used, context->out);
 }
 
 void csv_maximum_resident_set_size_to_string(PrinterContext *context, Node *node) {
@@ -113,5 +111,6 @@ void csv_foot (PrinterContext *context, Node *node) {
 
 void csv_executable_foot (PrinterContext *context, Node *node) {
     fprintf(context->out, "\n");
+    previous_value = FALSE;
 }
 

@@ -10,7 +10,7 @@
 
 const char *DEFAULT_FORMAT			= "txt";
 const char *DEFAULT_LOG_PATH		= "/tmp/SO_project.log";
-const char *DEFAULT_LOG_OPTIONS 	= "invocation_failed,pid,start_time,end_time,total_time,exit_code";
+const char *DEFAULT_LOG_OPTIONS 	= "invocation_failed,pid,start_time,end_time,total_time,user_cpu_time,system_cpu_time,exit_code";
 
 
 typedef struct Arguments {
@@ -115,7 +115,20 @@ void print_help () {
 	printf("\t--help\t\tPrint this message;\n");
 	printf("\t--log_file\tSpecify log file path;\n");
 	printf("\t--format\tChoose output format (TXT, CSV or HTML);\n");
-	printf("\t--options\tChoose what to include in the log file;\n");
+	printf("\t--options\tChoose what to include in the log file. Available options are:\n");
+
+	printf("\t\t* pid: Process ID;\n");
+	printf("\t\t* invocation_failed: True if the executable couldn't start;\n");
+	printf("\t\t* exit_code: Exit code;\n");
+	printf("\t\t* start_time: Clock starting time;\n");
+	printf("\t\t* end_time: Clock ending time of the execution;\n");
+	printf("\t\t* total_time: Total clock time that the executable was running;\n");
+	printf("\t\t* user_cpu_time: Total cpu time effectively used in user mode;\n");
+	printf("\t\t* system_cpu_time: Total cpu time effectively used in kernel mode;\n");
+	printf("\t\t* maximum_resident_set_size: Memory of the executable that was in RAM;\n");
+
+
+
     printf("\t--verbose\tEnable logging of the tool;\n");
     printf("\t--stop_daemon\tStops the writer daemon if running;\n");
 }

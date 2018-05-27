@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <sys/time.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -24,6 +25,7 @@ void syscall_fail(const char *message);
 
 void copy_stream (int from, int to);
 
-void print_time (struct timespec time, FILE *out);
+void print_timespec(struct timespec time, FILE *out);
+void print_timeval(struct timeval time, FILE *out);
 
 #endif

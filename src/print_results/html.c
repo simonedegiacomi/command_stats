@@ -102,21 +102,24 @@ void html_total_time_to_string(PrinterContext *context, Node *node) {
     struct timespec total_time = get_total_clock_time(node);
 
     fprintf(context->out, "<p>Total time: ");
-    print_time(total_time, context->out);
+    print_timespec(total_time, context->out);
     fprintf(context->out, "</p>");
 }
 
 void html_user_cpu_time_to_string(PrinterContext *context, Node *node) {
-
+    fprintf(context->out, "<p>User CPU time:");
+    print_timeval(node->result->user_cpu_time_used, context->out);
+    fprintf(context->out, "</p>");
 }
 
 void html_system_cpu_time_to_string(PrinterContext *context, Node *node) {
-
+    fprintf(context->out, "<p>System CPU time:");
+    print_timeval(node->result->system_cpu_time_used, context->out);
+    fprintf(context->out, "</p>");
 }
 
-void
-html_maximum_resident_set_size_to_string(PrinterContext *context, Node *node) {
-
+void html_maximum_resident_set_size_to_string(PrinterContext *context, Node *node) {
+    fprintf(context->out, "<p>Resident Segment Size: %li</p>", node->result->maximum_resident_set_size);
 }
 
 void html_executable_foot(PrinterContext *context, Node *node) {
