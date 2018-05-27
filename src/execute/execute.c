@@ -15,9 +15,12 @@
  * This modules will execute the nodes asynchronously in a different process and
  * then wait them in the parent process.
  * At any given time the number of process will be one for the father, one for each
- * executable (more for those inside a PipeNode) and some for the appenders.
- * Appenders are processes that appens the output of multiple nodes when the operator
+ * executable running and some for the appenders.
+ * Appenders are processes that appends the output of multiple nodes when the operator
  * is And, Or or Semicolon.
+ *
+ * There is a function that is responsible to wait each child and start the next
+ * operand if needed.
  */
 
 
@@ -60,13 +63,13 @@ void handle_operands_node_execution_completed (Node *operands_node, Node *comple
 static Node * tree;
 
 /**
- * Number of executable to wait
+ * Number of ExecutableNode nodes currently running (appenders excluded).
  */
 static int to_wait = 0;
 
 /**
- * List of all file descriptor open for append operations (AndNode_T, OrNode_T
- * and SemicolonNode_t). This array is allocated by the execute function and its
+ * List of all file descriptor open for append operations (AndNode, OrNode
+ * and SemicolonNode). This array is allocated by the execute function and its
  * size is the maximum number of file descriptors used by append operations.
  * At the beginning this array is empty (and the counter actually_open_appender_fds
  * is set to zero. During the execution of the operand nodes mentioned above the
@@ -105,7 +108,7 @@ void on_execution_failed(int signal, siginfo_t *info, void *context) {
 void execute (Node *node) {
     register_signal_handler(node);
     init_appender_fds_collector(node);
-    to_wait = count_executables_in_tree(tree);
+    to_wait = 0;
 
     execute_async(node);
     manage_running_nodes_and_collect_data(node);
@@ -184,6 +187,7 @@ void execute_executable_async(Node *node) {
     print_log("[EXECUTE] Starting new executable\n");
     open_pipes_if_needed(node);
     node->result = create_execution_result();
+    to_wait++;
 
     int fork_result = fork();
 
@@ -272,12 +276,17 @@ void run_execute_executable_child (Node *node) {
     exit(-1);
 }
 
+/**
+ * Changes the current working directory of the process entering in the directories
+ * specified in the executable node cd array.
+ */
 void change_dir_if_needed (ExecutableNode *executable) {
     int i;
     for (i = 0; i < executable->cd_count; i++) {
         int res = chdir(executable->cd[i]);
         if (res == -1) {
-            program_fail("[EXECUTE] Can't chdir\n");
+            kill(getppid(), SIGUSR1); // Report error to father
+            program_fail("[EXECUTE] Can't chdir.\n");
         }
     }
 }
@@ -291,7 +300,7 @@ void open_redirect_file_if_needed(Stream *to_init) {
     if (to_init->type == FileStream_T) {
         int open_res = open(to_init->options.file.name, to_init->options.file.open_flag, 0666);
         if (open_res < 0) {
-            // TODO: Handle
+            program_fail("[EXECUTE] Can't open redirect file.\n");
         } else {
             to_init->file_descriptor = open_res;
         }
@@ -299,7 +308,9 @@ void open_redirect_file_if_needed(Stream *to_init) {
 }
 
 /**
- * Executes all the pipe operands in parallel, forking n operands times.
+ * Executes all the pipe operands in parallel.
+ * For each operand execute_async is called. If all the n operands are executables
+ * then the process will fork n times.
  */
 void execute_pipe_async(Node *pipe_node) {
     pipe_node->result = create_execution_result();
@@ -330,6 +341,7 @@ void execute_first_operand_async_and_start_appender(Node *node) {
 
 
 void init_appender (Appender *appender) {
+    // Initialize all the pipes and reditects
     open_pipe_if_needed(appender->to, FROM_NODE);
     open_redirect_file_if_needed(appender->to);
 
@@ -338,10 +350,14 @@ void init_appender (Appender *appender) {
         open_pipe_if_needed(appender->from[i], TO_NODE);
     }
 
+
+    // Fork to run the appender in a new process
     int fork_res = fork();
     if (fork_res < 0) {
         // TODO: Handle error
     } else if (fork_res > 0) {
+        // Close all the fd not used by the parent process but only by the appender
+
         if (appender->to->file_descriptor != STDOUT_FILENO) {
             close(appender->to->file_descriptor);
         }
@@ -350,7 +366,10 @@ void init_appender (Appender *appender) {
         }
 
         for (i = 0; i < appender->from_count; i++) {
-            // Questo dovrebbe essere per forza una pipe
+            // This stream is always a pipe
+            if (appender->from[i]->type != PipeStream_T) {
+                print_log("[APPENDER] Unexpected type of stream\n");
+            }
             close(appender->from[i]->options.pipe->descriptors[READ_FROM_PIPE]);
 
             open_appender_fds[actually_open_appender_fds++] = appender->from[i]->options.pipe->descriptors[WRITE_INTO_PIPE];
@@ -366,16 +385,21 @@ void init_appender (Appender *appender) {
 
 void run_appender_main (Appender *appender) {
     print_log("[APPENDER] Started\n");
+    // Close all fd not used by the appender
     if (appender->to->type == PipeStream_T) {
         close(appender->to->options.pipe->descriptors[READ_FROM_PIPE]);
     }
 
     int i;
     for (i = 0; i < appender->from_count; i++) {
+        if (appender->from[i]->type != PipeStream_T) {
+            print_log("[APPENDER] Unexpected type of stream\n");
+        }
         close(appender->from[i]->options.pipe->descriptors[WRITE_INTO_PIPE]);
     }
 
-    
+
+    // Start reading from each fd and write the output to the output fd
     for (i = 0; i < appender->from_count; i++) {
         print_log("[APPENDER] Reading from node %d of %d ...\n", i, appender->from_count);
 
@@ -390,7 +414,12 @@ void run_appender_main (Appender *appender) {
 }
 
 
-
+/**
+ * Function that waits for running children and then collect the results.
+ * Once the results are collected the function call handle_operands_node_execution_completed
+ * to asynchronously star new operators if needed.
+ * @param tree
+ */
 void manage_running_nodes_and_collect_data (Node *tree) {
     while (to_wait > 0) {
         print_log("[EXECUTE] Waiting %d children ...\n", to_wait);
@@ -415,7 +444,9 @@ void manage_running_nodes_and_collect_data (Node *tree) {
     }
 }
 
-
+/**
+ * Read data from struct rusage and copy the information to the executed node
+ */
 void assign_results (Node *node, int exit_code, struct rusage *statistic) {
     node->result->exit_code                 = exit_code;
     node->result->end_time                  = get_current_time();
@@ -423,39 +454,48 @@ void assign_results (Node *node, int exit_code, struct rusage *statistic) {
     node->result->system_cpu_time_used      = statistic->ru_stime;
     node->result->maximum_resident_set_size = statistic->ru_maxrss;
     node->result->invocation_failed         = FALSE;
-
-    // TODO: Compute here clock time or add a method?
 }
 
+
+/**
+ * This function start execute successive nodes if the executed node was a operator.
+ * @param operands_node Father of the executed node
+ * @param completed Executed node
+ */
 void handle_operands_node_execution_completed (Node *operands_node, Node *completed) {
+    // Find next node in the operands array
     Node *next = find_next_node_in_operands(operands_node, completed);
+
+    BOOL has_next = (next != NULL); // Indicates if the executed node was the last operand
+
     BOOL exited_correctly = WIFEXITED(completed->result->exit_code) && WEXITSTATUS(completed->result->exit_code) == 0;
-    BOOL has_next = (next != NULL);
-    BOOL stopped = FALSE;
-    BOOL end = FALSE;
+
+    BOOL end = FALSE; // Indicates if the operand ended the operands execution (last or short circuit)
 
     switch (operands_node->type) {
         case AndNode_T:
             if (exited_correctly && has_next) {
                 execute_async(next);
-            } else if (exited_correctly) {
+
+            } else if (exited_correctly) { // Last operand
                 operands_node->result->exit_code = 0;
                 end = TRUE;
-            } else {
+
+            } else { // Short circuit, stop the operands execution
                 operands_node->result->exit_code = completed->result->exit_code;
                 end = TRUE;
-                stopped = TRUE;
             }
             break;
 
         case OrNode_T:
-            if (exited_correctly) {
+            if (exited_correctly) { // Short circuit, stop the operands execution
                 operands_node->result->exit_code = 0;
                 end = TRUE;
-                stopped = TRUE;
+
             } else if (has_next) {
                 execute_async(next);
-            } else {
+
+            } else { // Last operand
                 operands_node->result->exit_code = completed->result->exit_code;
                 end = TRUE;
             }
@@ -464,37 +504,29 @@ void handle_operands_node_execution_completed (Node *operands_node, Node *comple
         case SemicolonNode_T:
             if (has_next) {
                 execute_async(next);
-            } else {
+            } else { // Last operand
                 operands_node->result->exit_code = completed->result->exit_code;
                 end = TRUE;
             }
             break;
 
         case PipeNode_T:
-            if (!has_next) {
+            if (!has_next) { // Last operand
                 operands_node->result->exit_code = completed->result->exit_code;
                 end = TRUE;
             }
             break;
 
         default:
-            program_fail("[EXECUTE] Unexpected tree structure\n");
+            program_fail("[EXECUTE] Unexpected tree structure.\n");
             break;
     }
 
-    if (stopped) {
-        int not_executed = 0;
-
-        while (next != NULL) {
-            not_executed += count_executables_in_tree(next);
-            next = find_next_node_in_operands(operands_node, next);
-        }
-
-        print_log("[EXECUTE] %d executable will not be executed\n", not_executed);
-
-        // TODO: Contare quelli che non verranno eseguiti
-        to_wait -= not_executed;
-    }
+    /**
+     * If the executed node was an executable we don't node to di anything special,
+     * but if it was a operator node we need to recursively call this function to
+     * maintain the correct behaviour of the other operators.
+     */
     if (end) {
         Node *father = find_father_of_node_in_tree(operands_node, tree);
         if (father != NULL) {
@@ -503,6 +535,11 @@ void handle_operands_node_execution_completed (Node *operands_node, Node *comple
     }
 }
 
+/**
+ * Closes all the appender fds except those used by the current process.
+ * @param std_in std in used by the current process
+ * @param std_out std out used by the current process
+ */
 void close_appender_fds_except(int std_in, int std_out) {
     if (open_appender_fds != NULL) {
         int i;
