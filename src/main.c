@@ -57,6 +57,7 @@ int main (int argc, char *argv[]) {
 
 	// Execute the command
     execute(command_tree);
+    print_log("[EXECUTE] Execution terminated\n");
 
 	// Request pipe from daemon
     int log_fd = book_and_obtain_log_fd(arguments->log_file_path);
@@ -129,7 +130,6 @@ void print_help () {
 	printf("\t\t* user_cpu_time: Total cpu time effectively used in user mode;\n");
 	printf("\t\t* system_cpu_time: Total cpu time effectively used in kernel mode;\n");
 	printf("\t\t* maximum_resident_set_size: Memory of the executable that was in RAM;\n");
-
 
 
     printf("\t--verbose\tEnable logging of the tool;\n");

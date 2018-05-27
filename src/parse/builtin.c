@@ -44,8 +44,7 @@ void apply_cd_builtin_r (Node *father, Node *node) {
 
             apply_cd_builtin_r(node, operands->nodes[i]);
 
-
-            if (operands->count == (count - 1)) {
+            if (operands->count == (count - 1)) { // The i node was removed from the operands
                 i--;
             }
         }

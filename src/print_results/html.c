@@ -30,8 +30,8 @@ void html_head(PrinterContext *context, Node *node) {
     fprintf(context->out,
             "<html>"
                 "<head>"
-                "    <title>%s</title>"
-                "    <style>"
+                "<title>%s</title>"
+                "<style>"
                 ".node {\n"
                 "  border: 1px solid black;\n"
                 "  padding: 4px;\n"
@@ -44,7 +44,15 @@ void html_head(PrinterContext *context, Node *node) {
                 ".executable {\n"
                 "  border: 1px solid blue;\n"
                 "}"
-                "    </style>"
+                ".arguments {\n"
+                "  padding-bottom: 8px;\n"
+                "}\n"
+                ".arguments > span {\n"
+                "  border: 1px solid green;\n"
+                "  margin: 4px;\n"
+                "  padding: 4px;\n"
+                "}\n"
+                "</style>"
                 "</head>"
                 "<body><h1>Command: %s</h1>", context->command, context->command);
 }
@@ -75,7 +83,7 @@ void html_enter_operand_node(PrinterContext *context, Node *node) {
 
     fprintf(context->out,
             "<div class=\"node\">"
-                "<h3>%s</h3>"
+                "<h2>%s</h2>"
                 "<div class=\"operands\">", operand_name);
 }
 
@@ -83,7 +91,15 @@ void html_enter_operand_node(PrinterContext *context, Node *node) {
 void html_executable_head(PrinterContext *context, Node *node) {
     fprintf(context->out,
             "<div class=\"node executable\">"
-                "<h4>%s</h4>", node->value.executable.path);
+                "<h3>%s</h3>", node->value.executable.path);
+
+    // Arguments
+    fprintf(context->out, "<div class=\"arguments\">Args: ");
+    int i;
+    for (i = 0; i < node->value.executable.argc; i++) {
+        fprintf(context->out, "<span>%s</span>", node->value.executable.argv[i]);
+    }
+    fprintf(context->out, "</div>");
 }
 
 

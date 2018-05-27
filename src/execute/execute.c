@@ -93,7 +93,8 @@ void on_execution_failed(int signal, siginfo_t *info, void *context) {
     Node *failed_child;
     BOOL found = find_node_in_tree_with_pid(tree, sender_pid, &failed_child, NULL);
     if (found) {
-        fprintf(stderr, "[EXECUTE] Invocation of executable of child %d failed\n", sender_pid);
+        fprintf(stderr, "[EXECUTE] Invocation of executable '%s' (PID %d) failed\n",
+                failed_child->value.executable.path, sender_pid);
         failed_child->result->invocation_failed = TRUE;
     }
 }
@@ -115,7 +116,6 @@ void execute (Node *node) {
 
     remove_signal_handler();
     destroy_appender_fds_collector();
-    print_log("[EXECUTE] Execution terminated\n");
 }
 
 
@@ -331,12 +331,14 @@ void execute_pipe_async(Node *pipe_node) {
  * executes the first operand node.
  */
 void execute_first_operand_async_and_start_appender(Node *node) {
-    node->result = create_execution_result();
-    Appender *appender = node->value.operands.appender;
-    init_appender(appender);
-
     OperandsNode operands = node->value.operands;
-    execute_async(operands.nodes[0]);
+    node->result = create_execution_result();
+    if (operands.count > 0) {
+        Appender *appender = node->value.operands.appender;
+        init_appender(appender);
+
+        execute_async(operands.nodes[0]);
+    }
 }
 
 
