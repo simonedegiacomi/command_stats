@@ -5,7 +5,6 @@
 #include "execute/execute.h"
 #include "daemon/daemon.h"
 #include "daemon/daemon_socket.h"
-#include "print_results/printer.h"
 #include "print_results/print_results.h"
 
 const char *DEFAULT_FORMAT			= "txt";

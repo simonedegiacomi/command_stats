@@ -23,45 +23,8 @@ typedef struct AttributeKeyword {
 } AttributeKeyword;
 
 // Association between keyword and enum
-static AttributeKeyword keywords[] = {
-    {
-        .keyword = "pid",
-        .value = PID
-    },
-    {
-        .keyword = "exit_code",
-        .value = EXIT_CODE
-    },
-    {
-        .keyword = "invocation_failed",
-        .value = EXECUTION_FAILED
-    },
-    {
-        .keyword = "start_time",
-        .value = START_TIME
-    },
-    {
-        .keyword = "end_time",
-        .value = END_TIME
-    },
-    {
-        .keyword = "total_time",
-        .value = TOTAL_TIME
-    },
-    {
-        .keyword = "user_cpu_time",
-        .value = USER_CPU_TIME
-    },
-    {
-        .keyword = "system_cpu_time",
-        .value = SYSTEM_CPU_TIME
-    },
-    {
-        .keyword = "maximum_resident_set_size",
-        .value = MAXIMUM_RESIDENT_SEGMENT_SIZE
-    }
-};
-static int keywords_count = sizeof(keywords) / sizeof(AttributeKeyword);
+extern AttributeKeyword keywords[];
+extern int keywords_count;
 
 
 

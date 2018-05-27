@@ -4,6 +4,29 @@
 #include "txt.h"
 
 
+Printer TxtPrinter = {
+    .head                                       = txt_head,
+    .executable_head                            = txt_executable_head,
+    .enter_operand_node                         = NULL,
+
+    .executed_to_string                         = txt_executed_to_string,
+    .pid_to_string                              = txt_pid_to_string,
+    .exit_code_to_string                        = txt_exit_code_to_string,
+    .invocation_failed_to_string                = txt_execution_failed_to_string,
+    .start_time_to_string                       = txt_start_time_to_string,
+    .end_time_to_string                         = txt_end_time_to_string,
+    .total_time_to_string                       = txt_total_time_to_string,
+    .user_cpu_time_to_string                    = txt_user_cpu_time_to_string,
+    .system_cpu_time_to_string                  = txt_system_cpu_time_to_string,
+    .maximum_resident_set_size_to_string        = txt_maximum_resident_set_size_to_string,
+
+    .foot                                       = txt_foot,
+    .exit_operand_node                          = NULL,
+    .executable_foot                            = txt_executable_foot,
+};
+
+
+
 void txt_head(PrinterContext *context, Node *node) {
     fprintf(context->out, "Execution of '%s'\n", context->command);
     fprintf(context->out, "------------------------------------\n");
