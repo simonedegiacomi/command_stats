@@ -56,7 +56,7 @@ void csv_exit_code_to_string(PrinterContext *context, Node *node) {
 }
 
 void csv_execution_failed_to_string(PrinterContext *context, Node *node) {
-    print_csv_value(context, "%s", node->result->execution_failed ? "true" : "false");
+    print_csv_value(context, "%s", node->result->invocation_failed ? "true" : "false");
 }
 
 void csv_start_time_to_string(PrinterContext *context, Node *node) {

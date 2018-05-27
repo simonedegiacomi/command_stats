@@ -111,9 +111,27 @@ BOOL find_node_in_tree_with_pid_r (Node *tree, int pid, Node **result, Node **re
     return found;
 }
 
+Node *find_father_of_node_in_tree(Node *child, Node *tree) {
+    if (is_operand_node(tree)) {
+        int i;
+        const OperandsNode *operands = &tree->value.operands;
+        for (i = 0; i < operands->count; i++) {
+            if (operands->nodes[i] == child) {
+                return tree;
+            } else {
+                Node *res = find_father_of_node_in_tree(child, operands->nodes[i]);
+                if (res != NULL) {
+                    return res;
+                }
+            }
+        }
 
+    }
+    return NULL;
+}
 
-Node * find_next_executable_in_operands(Node *father, Node *executed_child) {
+// TODO: Ma è davvero node e non eseguibile?
+Node * find_next_node_in_operands(Node *father, Node *executed_child) {
     int i;
     int next_index = -1;
     OperandsNode *operands = &father->value.operands;

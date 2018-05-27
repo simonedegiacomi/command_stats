@@ -36,11 +36,10 @@ typedef struct OperandsNode {
 
 
 typedef struct ExecutionResult {
-    // TODO: Choose between REALTIME and MONOTONIC
-    BOOL                execution_failed;
+    BOOL                invocation_failed;
+    int                 exit_code;
     struct timespec     start_time;
     struct timespec     end_time;
-    int                 exit_code;
     struct timeval      user_cpu_time_used;
     struct timeval      system_cpu_time_used;
     long                maximum_resident_set_size;
@@ -66,25 +65,27 @@ struct Node {
 
 
 
-Node *create_node();
-Node *create_executable_node(const char *path);
-Node *create_executable_node_single_arg(const char *path);
-ExecutionResult *create_execution_result();
+Node *              create_node                         ();
+Node *              create_executable_node              (const char *path);
+Node *              create_executable_node_single_arg   (const char *path);
+ExecutionResult *   create_execution_result             ();
 
 
-int count_executables_in_tree (Node *node);
+int                 count_executables_in_tree           (Node *node);
 
 
-BOOL find_node_in_tree_with_pid (Node *tree, int pid, Node **result, Node **result_father);
-Node * find_next_executable_in_operands(Node *father, Node *executed_child);
-BOOL is_operand_node (Node *node);
-int count_max_appender_file_descriptors(Node *node);
+BOOL                find_node_in_tree_with_pid          (Node *tree, int pid, Node **result, Node **result_father);
+Node *              find_father_of_node_in_tree         (Node *child, Node *Node);
+Node *              find_next_node_in_operands(Node *father,
+                                               Node *executed_child);
+BOOL                is_operand_node                     (Node *node);
+int                 count_max_appender_file_descriptors (Node *node);
 
-struct timespec get_total_clock_time(Node *node);
+struct timespec     get_total_clock_time                (Node *node);
 
-void remove_node_from_operands(Node *operands_node, Node *to_remove);
-void destroy_node (Node *node);
-void destroy_result (ExecutionResult *result);
+void                remove_node_from_operands           (Node *operands_node, Node *to_remove);
+void                destroy_node                        (Node *node);
+void                destroy_result                      (ExecutionResult *result);
 
 
 

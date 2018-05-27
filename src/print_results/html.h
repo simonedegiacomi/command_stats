@@ -9,9 +9,10 @@ void html_head                                   (PrinterContext *context, Node*
 void html_executable_head                        (PrinterContext *context, Node* node);
 void html_enter_operand_node                     (PrinterContext *context, Node* node);
 
+void html_executed_to_string                     (PrinterContext *context, Node *node);
+void html_invocation_failed_to_string            (PrinterContext *context, Node *node);
 void html_pid_to_string                          (PrinterContext *context, Node* node);
 void html_exit_code_to_string                    (PrinterContext *context, Node *node);
-void html_execution_failed_to_string             (PrinterContext *context, Node *node);
 void html_start_time_to_string                   (PrinterContext *context, Node *node);
 void html_end_time_to_string                     (PrinterContext *context, Node *node);
 void html_total_time_to_string                   (PrinterContext *context, Node *node);
@@ -29,9 +30,10 @@ static Printer HtmlPrinter = {
     .enter_operand_node                         = html_enter_operand_node,
     .executable_head                            = html_executable_head,
 
+    .executed_to_string                         = html_executed_to_string,
+    .invocation_failed_to_string                = html_invocation_failed_to_string,
     .pid_to_string                              = html_pid_to_string,
     .exit_code_to_string                        = html_exit_code_to_string,
-    .execution_failed_to_string                 = html_execution_failed_to_string,
     .start_time_to_string                       = html_start_time_to_string,
     .end_time_to_string                         = html_end_time_to_string,
     .total_time_to_string                       = html_total_time_to_string,

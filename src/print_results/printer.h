@@ -32,7 +32,7 @@ static AttributeKeyword keywords[] = {
         .value = EXIT_CODE
     },
     {
-        .keyword = "execution_failed",
+        .keyword = "invocation_failed",
         .value = EXECUTION_FAILED
     },
     {
@@ -81,10 +81,10 @@ typedef struct Printer {
     ToString executable_head;
     ToString enter_operand_node;
 
-
+    ToString executed_to_string;
+    ToString invocation_failed_to_string;
     ToString pid_to_string;
     ToString exit_code_to_string;
-    ToString execution_failed_to_string;
     ToString start_time_to_string;
     ToString end_time_to_string;
     ToString total_time_to_string;

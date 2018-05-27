@@ -5,9 +5,9 @@
 
 
 void run_all_tests () {
-	run_experiment_regex_tests();
+	//run_experiment_regex_tests();
 	run_parser_test();
-	run_builtin_tests();
+	//run_builtin_tests();
 }
 
 int main (int argc, char *argv[]) {

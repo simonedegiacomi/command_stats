@@ -131,48 +131,53 @@ void print_results_rec(Node *node, Printer *printer, PrinterContext *context) {
 void print_executable_node(Node *node, Printer *printer, PrinterContext *context) {
 
     printer->executable_head(context, node);
+    printer->executed_to_string(context, node);
 
-    int i;
-    for (i = 0; i < context->attributes_count; i++) {
-        Attribute attribute = context->attributes[i];
-        switch (attribute) {
-            case PID:
-                printer->pid_to_string(context, node);
-                break;
+    if (node->result != NULL) {
 
-            case EXIT_CODE:
-                printer->exit_code_to_string(context, node);
-                break;
+        int i;
+        for (i = 0; i < context->attributes_count; i++) {
+            Attribute attribute = context->attributes[i];
+            switch (attribute) {
+                case PID:
+                    printer->pid_to_string(context, node);
+                    break;
 
-            case EXECUTION_FAILED:
-                printer->execution_failed_to_string(context, node);
-                break;
+                case EXIT_CODE:
+                    printer->exit_code_to_string(context, node);
+                    break;
 
-            case START_TIME:
-                printer->start_time_to_string(context, node);
-                break;
+                case EXECUTION_FAILED:
+                    printer->invocation_failed_to_string(context, node);
+                    break;
 
-            case END_TIME:
-                printer->end_time_to_string(context, node);
-                break;
+                case START_TIME:
+                    printer->start_time_to_string(context, node);
+                    break;
 
-            case TOTAL_TIME:
-                printer->total_time_to_string(context, node);
-                break;
+                case END_TIME:
+                    printer->end_time_to_string(context, node);
+                    break;
 
-            case USER_CPU_TIME:
-                printer->user_cpu_time_to_string(context, node);
-                break;
+                case TOTAL_TIME:
+                    printer->total_time_to_string(context, node);
+                    break;
 
-            case SYSTEM_CPU_TIME:
-                printer->system_cpu_time_to_string(context, node);
-                break;
+                case USER_CPU_TIME:
+                    printer->user_cpu_time_to_string(context, node);
+                    break;
 
-            case MAXIMUM_RESIDENT_SEGMENT_SIZE:
-                printer->maximum_resident_set_size_to_string(context, node);
-                break;
+                case SYSTEM_CPU_TIME:
+                    printer->system_cpu_time_to_string(context, node);
+                    break;
 
-            default: break;
+                case MAXIMUM_RESIDENT_SEGMENT_SIZE:
+                    printer->maximum_resident_set_size_to_string(context, node);
+                    break;
+
+                default:
+                    break;
+            }
         }
     }
 

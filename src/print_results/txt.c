@@ -27,7 +27,7 @@ void txt_exit_code_to_string(PrinterContext *context, Node *node) {
 }
 
 void txt_execution_failed_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "Execution OK:\t%s\n", node->result->execution_failed ? "true" : "false");
+    fprintf(context->out, "Execution OK:\t%s\n", node->result->invocation_failed ? "true" : "false");
 }
 
 void txt_start_time_to_string(PrinterContext *context, Node *node) {

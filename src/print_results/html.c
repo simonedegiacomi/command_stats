@@ -23,7 +23,7 @@ void html_head(PrinterContext *context, Node *node) {
                 "}"
                 "    </style>"
                 "</head>"
-                "<body>", context->command);
+                "<body><h1>Command: %s</h1>", context->command, context->command);
 }
 
 void html_enter_operand_node(PrinterContext *context, Node *node) {
@@ -72,12 +72,20 @@ void html_exit_code_to_string(PrinterContext *context, Node *node) {
     fprintf(context->out, "<p>Exit: %d</p>", WEXITSTATUS(node->result->exit_code));
 }
 
-void html_execution_failed_to_string(PrinterContext *context, Node *node) {
+void html_executed_to_string(PrinterContext *context, Node *node) {
     fprintf(context->out, "<div><input type=\"checkbox\" name=\"Executed\" onclick=\"return false;\" ");
-    if (!node->result->execution_failed) {
+    if (node->result != NULL) {
         fprintf(context->out, "checked");
     }
-    fprintf(context->out, " /><label>Eseguito</label></div>");
+    fprintf(context->out, " /><label>Executed</label></div>");
+}
+
+void html_invocation_failed_to_string(PrinterContext *context, Node *node) {
+    fprintf(context->out, "<div><input type=\"checkbox\" name=\"Executed\" onclick=\"return false;\" ");
+    if (!node->result->invocation_failed) {
+        fprintf(context->out, "checked");
+    }
+    fprintf(context->out, " /><label>Executable invocated</label></div>");
 }
 
 void html_start_time_to_string(PrinterContext *context, Node *node) {
@@ -120,5 +128,5 @@ void html_exit_operand_node(PrinterContext *context, Node *node) {
 }
 
 void html_foot(PrinterContext *context, Node *node) {
-    fprintf(context->out, "<body></html>");
+    fprintf(context->out, "</body></html>");
 }

@@ -53,7 +53,7 @@ void apply_cd_builtin_r (Node *father, Node *node) {
             if (father != NULL && father->type != PipeNode_T) {
                 Node *brother = node;
                 do {
-                    brother = find_next_executable_in_operands(father, brother);
+                    brother = find_next_node_in_operands(father, brother);
                     if (brother != NULL) {
                         add_cd(&brother->value.executable, executable->argv[1]);
                     }

@@ -28,7 +28,7 @@ static Printer TxtPrinter = {
 
     .pid_to_string                              = txt_pid_to_string,
     .exit_code_to_string                        = txt_exit_code_to_string,
-    .execution_failed_to_string                 = txt_execution_failed_to_string,
+    .invocation_failed_to_string                 = txt_execution_failed_to_string,
     .start_time_to_string                       = txt_start_time_to_string,
     .end_time_to_string                         = txt_end_time_to_string,
     .total_time_to_string                       = txt_total_time_to_string,

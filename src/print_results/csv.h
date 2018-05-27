@@ -28,7 +28,7 @@ static Printer CsvPrinter = {
 
     .pid_to_string                              = csv_pid_to_string,
     .exit_code_to_string                        = csv_exit_code_to_string,
-    .execution_failed_to_string                 = csv_execution_failed_to_string,
+    .invocation_failed_to_string                 = csv_execution_failed_to_string,
     .start_time_to_string                       = csv_start_time_to_string,
     .end_time_to_string                         = csv_end_time_to_string,
     .total_time_to_string                       = csv_total_time_to_string,

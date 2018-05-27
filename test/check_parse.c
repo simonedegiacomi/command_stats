@@ -17,6 +17,8 @@ void should_parse_ls_with_argument() {
     executable->argv[1] = "-lah";
 
     check_tree_equals(expected, parsed);
+
+    destroy_node(parsed);
 }
 
 void should_parse_ls_with_two_arguments() {
@@ -32,11 +34,13 @@ void should_parse_ls_with_two_arguments() {
     executable->argv[2] = "-a";
 
     check_tree_equals(expected, parsed);
+    destroy_node(parsed);
 }
 
 void should_parse_ls_pipe_wc_pipe_wc() {
     char *input = "ls -lah | wc | wc";
     Node *parsed = create_tree_from_string(input);
+    printf("%d\n", parsed->std_in);
 
     char **lsArgs = malloc(2 * sizeof(char *));
     lsArgs[0] = "ls";
@@ -77,6 +81,10 @@ void should_parse_ls_pipe_wc_pipe_wc() {
     };
 
     check_tree_equals(&expected, parsed);
+
+
+    printf("%d\n", parsed->std_in);
+    destroy_node(parsed);
 }
 
 void should_parse_and() {
