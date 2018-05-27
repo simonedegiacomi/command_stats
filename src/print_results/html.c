@@ -146,13 +146,13 @@ void html_total_time_to_string(PrinterContext *context, Node *node) {
 }
 
 void html_user_cpu_time_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "<p>User CPU time:");
+    fprintf(context->out, "<p>User CPU time: ");
     print_timeval(node->result->user_cpu_time_used, context->out);
     fprintf(context->out, "</p>");
 }
 
 void html_system_cpu_time_to_string(PrinterContext *context, Node *node) {
-    fprintf(context->out, "<p>System CPU time:");
+    fprintf(context->out, "<p>System CPU time: ");
     print_timeval(node->result->system_cpu_time_used, context->out);
     fprintf(context->out, "</p>");
 }
