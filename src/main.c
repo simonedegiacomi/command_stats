@@ -114,7 +114,7 @@ void print_help () {
 	printf("\nOptions:\n");
 	printf("\t--help\t\tPrint this message;\n");
 	printf("\t--log_file\tSpecify log file path;\n");
-	printf("\t--format\tChoose output format (TXT or CSV);\n");
+	printf("\t--format\tChoose output format (TXT, CSV or HTML);\n");
 	printf("\t--options\tChoose what to include in the log file;\n");
     printf("\t--verbose\tEnable logging of the tool;\n");
     printf("\t--stop_daemon\tStops the writer daemon if running;\n");
