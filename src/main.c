@@ -83,22 +83,22 @@ Arguments * parse_arguments(int argc, char **argv) {
 	for (i = 1; i < argc; i++) {
 		BOOL next_argument_exists = (i + 1) < argc;
 
-		if (strcmp(argv[i], "--help") == 0) {
+		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
 			arguments->print_help = TRUE;
 
-		} else if (strcmp(argv[i], "--log-file") == 0 && next_argument_exists) {
+		} else if ((strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--log-file") == 0) && next_argument_exists) {
 			arguments->log_file_path = argv[++i];
 
-		} else if (strcmp(argv[i], "--options") == 0 && next_argument_exists) {
+		} else if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--options") == 0) && next_argument_exists) {
 			arguments->log_options = argv[++i];
 
-		} else if (strcmp(argv[i], "--format") == 0 && next_argument_exists) {
+		} else if ((strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--format") == 0) && next_argument_exists) {
 			arguments->format = argv[++i];
 
-		} else if (strcmp(argv[i], "--verbose") == 0) {
+		} else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
 			enable_logging();
 
-		} else if (strcmp(argv[i], "--stop-daemon") == 0) {
+		} else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--stop-daemon") == 0) {
 			arguments->stop_daemon = TRUE;
 
 		} else {
@@ -115,10 +115,10 @@ void print_help () {
 	printf("Usage:\n");
 	printf("command_stats <options> <command>\n");
 	printf("\nOptions:\n");
-	printf("\t--help\t\tPrint this message;\n");
-	printf("\t--log-file\tSpecify log file path;\n");
-	printf("\t--format\tChoose output format (TXT, CSV or HTML);\n");
-	printf("\t--options\tChoose what to include in the log file. Available options are:\n");
+	printf("\t-h, --help\t\tPrint this message;\n");
+	printf("\t-l, --log-file\tSpecify log file path;\n");
+	printf("\t-f, --format\tChoose output format (TXT, CSV or HTML);\n");
+	printf("\t-o, --options\tChoose what to include in the log file. Available options are:\n");
 
 	printf("\t\t* pid: Process ID;\n");
 	printf("\t\t* invocation_failed: True if the executable couldn't start;\n");
@@ -132,8 +132,8 @@ void print_help () {
 
 
 
-    printf("\t--verbose\tEnable logging of the tool;\n");
-    printf("\t--stop-daemon\tStops the writer daemon if running;\n");
+    printf("\t-v, --verbose\tEnable logging of the tool;\n");
+    printf("\t-s, --stop-daemon\tStops the writer daemon if running;\n");
 }
 
 /**
